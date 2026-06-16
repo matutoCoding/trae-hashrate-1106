@@ -39,6 +39,7 @@ const ReconciliationPage: React.FC = () => {
     getReconciliationItems: getItems,
     getReconciliationById,
     generateReconciliationFromTransactions,
+    syncReconciliationFromTransactions,
     updateReconciliationItem
   } = useReconciliationStore();
 
@@ -56,19 +57,28 @@ const ReconciliationPage: React.FC = () => {
   });
 
   const handleConfirm = useCallback((id: string) => {
+    const items = getItems(id);
+    const hasMismatch = items.some(i => i.status === 'mismatch' || i.difference !== 0);
+
+    const content = hasMismatch
+      ? `该对账单存在差异记录（${items.filter(i => i.status === 'mismatch').length}条），确认后将无法修改，是否继续？`
+      : '确认后将无法修改，是否继续？';
+
     Taro.showModal({
-      title: '确认对账',
-      content: '确认后将无法修改，是否继续？',
+      title: hasMismatch ? '⚠️ 存在差异' : '确认对账',
+      content,
       success: (res) => {
         if (res.confirm) {
-          const result = confirmReconciliation(id);
+          const result = confirmReconciliation(id, '当前操作员');
           if (result) {
             Taro.showToast({ title: '对账确认成功', icon: 'success' });
+          } else {
+            Taro.showToast({ title: '确认失败，可能已确认', icon: 'none' });
           }
         }
       }
     });
-  }, [confirmReconciliation]);
+  }, [confirmReconciliation, getReconciliationById, getItems]);
 
   const handleViewDetail = useCallback((id: string) => {
     setDetailReconciliationId(id);
@@ -95,6 +105,22 @@ const ReconciliationPage: React.FC = () => {
       Taro.showToast({ title: '该月该卖家对账单已存在', icon: 'none' });
     }
   }, [generateMonth, generateSellerIndex, generateReconciliationFromTransactions, transactions]);
+
+  const handleSync = useCallback(() => {
+    const seller = sellers[generateSellerIndex];
+    const result = syncReconciliationFromTransactions({
+      period: generateMonth,
+      sellerId: seller.id,
+      sellerName: seller.name,
+      transactions
+    });
+    if (result) {
+      Taro.showToast({ title: '增量同步成功', icon: 'success' });
+      setShowGenerateForm(false);
+    } else {
+      Taro.showToast({ title: '该账单已确认，无法同步', icon: 'none' });
+    }
+  }, [generateMonth, generateSellerIndex, syncReconciliationFromTransactions, transactions]);
 
   const handleSystemAmountChange = useCallback((itemId: string, value: string) => {
     setEditValues(prev => ({
@@ -258,6 +284,9 @@ const ReconciliationPage: React.FC = () => {
                 <View className={styles.formActions}>
                   <View className={styles.formSubmitBtn} onClick={handleGenerate}>
                     <Text className={styles.formSubmitBtnText}>生成</Text>
+                  </View>
+                  <View className={styles.formSubmitBtn} onClick={handleSync}>
+                    <Text className={styles.formSubmitBtnText}>增量同步</Text>
                   </View>
                 </View>
               </View>

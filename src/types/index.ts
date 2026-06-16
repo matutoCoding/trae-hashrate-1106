@@ -100,6 +100,26 @@ export interface SellerSalesStats {
   currentRate: number;
   totalCommission: number;
   totalReceive: number;
+  settledAmount?: number;
+  pendingSettleAmount?: number;
+}
+
+// 结算批次状态
+export type SettlementStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+// 结算批次
+export interface Settlement {
+  id: string;
+  period: string;
+  sellerId: string;
+  sellerName: string;
+  totalAmount: number;
+  status: SettlementStatus;
+  reconciliationIds: string[];
+  createdAt: string;
+  confirmedAt?: string;
+  confirmedBy?: string;
+  remark?: string;
 }
 
 // 对账单状态

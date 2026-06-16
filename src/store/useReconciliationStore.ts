@@ -22,6 +22,12 @@ interface ReconciliationActions {
     sellerName: string;
     transactions: Transaction[];
   }) => Reconciliation | null;
+  syncReconciliationFromTransactions: (params: {
+    period: string;
+    sellerId: string;
+    sellerName: string;
+    transactions: Transaction[];
+  }) => Reconciliation | null;
   updateReconciliationItem: (params: {
     itemId: string;
     systemAmount: number;
@@ -99,6 +105,72 @@ export const useReconciliationStore = create<ReconciliationState & Reconciliatio
     }));
 
     return reconciliation;
+  },
+
+  syncReconciliationFromTransactions: ({ period, sellerId, sellerName, transactions }) => {
+    const state = get();
+    const existing = state.getReconciliationByPeriod(period, sellerId);
+
+    if (!existing) {
+      return state.generateReconciliationFromTransactions({ period, sellerId, sellerName, transactions });
+    }
+
+    if (existing.status === 'confirmed') return null;
+
+    const filtered = transactions.filter(
+      (t) =>
+        t.sellerId === sellerId &&
+        t.createdAt.slice(0, 7) === period &&
+        t.status === 'completed' &&
+        t.type === 'sale'
+    );
+
+    const existingItems = state.reconciliationItems.filter(
+      (item) => item.reconciliationId === existing.id
+    );
+    const existingTransactionIds = new Set(existingItems.map((item) => item.transactionId));
+
+    const newTransactions = filtered.filter((t) => !existingTransactionIds.has(t.id));
+
+    if (newTransactions.length === 0) return existing;
+
+    const newItems: ReconciliationItem[] = newTransactions.map((t) => ({
+      id: `item-${Date.now()}-${t.id}`,
+      reconciliationId: existing.id,
+      transactionId: t.id,
+      transactionAmount: t.amount,
+      systemAmount: t.amount,
+      difference: 0,
+      status: 'matched' as const,
+      editable: true
+    }));
+
+    const allItems = [...existingItems, ...newItems];
+
+    const totalAmount = allItems.reduce((sum, i) => sum + i.transactionAmount, 0);
+    const totalCommission = filtered.reduce((sum, t) => sum + t.commissionAmount, 0);
+    const totalSettle = totalAmount - totalCommission;
+
+    const hasMismatch = allItems.some((i) => i.status === 'mismatch');
+    const status: Reconciliation['status'] = hasMismatch ? 'mismatch' : 'matched';
+
+    const updatedReconciliation: Reconciliation = {
+      ...existing,
+      totalAmount,
+      totalCommission,
+      totalSettle,
+      transactionCount: allItems.length,
+      status
+    };
+
+    set((state) => ({
+      reconciliations: state.reconciliations.map((r) =>
+        r.id === existing.id ? updatedReconciliation : r
+      ),
+      reconciliationItems: [...state.reconciliationItems, ...newItems]
+    }));
+
+    return updatedReconciliation;
   },
 
   updateReconciliationItem: ({ itemId, systemAmount, remark }) => {

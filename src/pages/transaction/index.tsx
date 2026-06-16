@@ -33,7 +33,8 @@ const TransactionPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedSellerIndex, setSelectedSellerIndex] = useState(0);
   const [selectedBuyerIndex, setSelectedBuyerIndex] = useState(0);
-  const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
+  const [selectedBoxIndex, setSelectedBoxIndex] = useState(-1);
+  const [boxSelected, setBoxSelected] = useState(false);
   const [amountInput, setAmountInput] = useState('');
 
   const {
@@ -44,7 +45,7 @@ const TransactionPage: React.FC = () => {
   } = useTransactionStore();
 
   const { getSellerStats, getCurrentRate, updateSellerStatsAfterTransaction } = useCommissionStore();
-  const { getAvailableBoxes } = useBoxStore();
+  const { getAvailableBoxes, markBoxAsSold } = useBoxStore();
 
   useEffect(() => {
     useAppInitStore.getState().ensureInitialized();
@@ -88,11 +89,15 @@ const TransactionPage: React.FC = () => {
   const totalExpense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
   const netIncome = totalIncome - totalExpense;
 
-  const availableBoxes = useMemo(() => getAvailableBoxes(), [getAvailableBoxes, transactions]);
-
   const seller = sellerNames[selectedSellerIndex];
   const buyer = buyerNames[selectedBuyerIndex];
-  const box = availableBoxes.length > 0 ? availableBoxes[selectedBoxIndex] : null;
+
+  const availableBoxes = useMemo(() => {
+    const allAvailable = getAvailableBoxes();
+    return allAvailable.filter(b => b.sellerId === seller.id);
+  }, [getAvailableBoxes, seller.id, transactions]);
+
+  const box = boxSelected && selectedBoxIndex >= 0 && selectedBoxIndex < availableBoxes.length ? availableBoxes[selectedBoxIndex] : null;
 
   const sellerStats = getSellerStats(seller.id);
   const sellerTotalSales = sellerStats?.totalSales || 0;
@@ -104,6 +109,8 @@ const TransactionPage: React.FC = () => {
 
   const handleSellerChange = useCallback((e) => {
     setSelectedSellerIndex(e.detail.value);
+    setSelectedBoxIndex(-1);
+    setBoxSelected(false);
   }, []);
 
   const handleBuyerChange = useCallback((e) => {
@@ -112,6 +119,7 @@ const TransactionPage: React.FC = () => {
 
   const handleBoxChange = useCallback((e) => {
     setSelectedBoxIndex(e.detail.value);
+    setBoxSelected(true);
   }, []);
 
   const handleAmountInput = useCallback((e) => {
@@ -119,7 +127,7 @@ const TransactionPage: React.FC = () => {
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!box) {
+    if (!boxSelected || !box) {
       Taro.showToast({ title: '请选择盲盒', icon: 'none' });
       return;
     }
@@ -148,14 +156,19 @@ const TransactionPage: React.FC = () => {
       sellerReceiveAmount: sellerReceive
     });
 
+    if (box) {
+      markBoxAsSold(box.id);
+    }
+
     Taro.showToast({ title: '新增成功', icon: 'success' });
 
     setShowForm(false);
     setAmountInput('');
     setSelectedSellerIndex(0);
     setSelectedBuyerIndex(0);
-    setSelectedBoxIndex(0);
-  }, [amount, seller, buyer, box, sellerTotalSales, platformCommission, sellerReceive, createManualTransactionFromForm, updateSellerStatsAfterTransaction]);
+    setSelectedBoxIndex(-1);
+    setBoxSelected(false);
+  }, [amount, seller, buyer, box, boxSelected, sellerTotalSales, platformCommission, sellerReceive, createManualTransactionFromForm, updateSellerStatsAfterTransaction, markBoxAsSold]);
 
   return (
     <View className={styles.page}>
@@ -212,12 +225,12 @@ const TransactionPage: React.FC = () => {
               <Picker
                 mode='selector'
                 range={availableBoxes.length > 0 ? availableBoxes.map(b => b.name) : ['暂无可用盲盒']}
-                value={selectedBoxIndex}
+                value={availableBoxes.length > 0 ? Math.max(selectedBoxIndex, 0) : 0}
                 onChange={availableBoxes.length > 0 ? handleBoxChange : undefined}
               >
                 <View className={styles.pickerValue}>
                   <Text className={styles.pickerText}>
-                    {availableBoxes.length > 0 ? availableBoxes[selectedBoxIndex]?.name || '请选择' : '暂无可用盲盒'}
+                    {availableBoxes.length > 0 ? (boxSelected ? box?.name : '请选择盲盒') : '暂无可用盲盒'}
                   </Text>
                   <Text className={styles.pickerArrow}>▼</Text>
                 </View>

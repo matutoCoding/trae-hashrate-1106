@@ -4,6 +4,7 @@ export default defineAppConfig({
     'pages/transaction/index',
     'pages/commission/index',
     'pages/reconciliation/index',
+    'pages/settlement/index',
     'pages/box-detail/index',
     'pages/match-records/index',
     'pages/transaction-detail/index'

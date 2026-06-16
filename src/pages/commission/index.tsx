@@ -5,6 +5,7 @@ import classnames from 'classnames';
 import CommissionTierCard from '@/components/CommissionTierCard';
 import { useCommissionStore } from '@/store/useCommissionStore';
 import { useTransactionStore } from '@/store/useTransactionStore';
+import { useSettlementStore } from '@/store/useSettlementStore';
 import { useAppInitStore } from '@/store/useAppInitStore';
 import dayjs from 'dayjs';
 import styles from './index.module.scss';
@@ -31,6 +32,7 @@ const CommissionPage: React.FC = () => {
   } = useCommissionStore();
 
   const { getTransactionsBySeller } = useTransactionStore();
+  const { getSettlementsBySeller } = useSettlementStore();
 
   const [sellerPickerIndex, setSellerPickerIndex] = useState(
     sellers.findIndex(s => s.id === currentSellerId)
@@ -61,6 +63,21 @@ const CommissionPage: React.FC = () => {
     s => s.sellerId === currentSellerId && s.month === dayjs().subtract(1, 'month').format('YYYY-MM')
   ), [sellerStats, currentSellerId]);
 
+  const settledAmount = useMemo(() => {
+    return getSettlementsBySeller(currentSellerId)
+      .filter(s => s.status === 'completed')
+      .reduce((sum, s) => sum + s.totalAmount, 0);
+  }, [currentSellerId, getSettlementsBySeller]);
+
+  const pendingSettleAmount = totalReceive - settledAmount;
+
+  const monthlyTrend = useMemo(() => {
+    return sellerStats
+      .filter(s => s.sellerId === currentSellerId)
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-6);
+  }, [sellerStats, currentSellerId]);
+
   const recentTransactions = useMemo(() => {
     const sellerTxns = getTransactionsBySeller(currentSellerId)
       .filter(t => t.status === 'completed')
@@ -72,6 +89,14 @@ const CommissionPage: React.FC = () => {
     const index = e.detail.value;
     setSellerPickerIndex(index);
     setCurrentSellerId(sellers[index].id);
+  };
+
+  const handleMonthClick = (month: string) => {
+    Taro.navigateTo({ url: `/pages/transaction-detail/index?month=${month}&sellerId=${currentSellerId}` });
+  };
+
+  const handleGoSettlement = () => {
+    Taro.navigateTo({ url: `/pages/settlement/index?sellerId=${currentSellerId}` });
   };
 
   const currentSellerName = sellers.find(s => s.id === currentSellerId)?.name || '';
@@ -123,6 +148,14 @@ const CommissionPage: React.FC = () => {
             <View className={styles.statItem}>
               <Text className={classnames(styles.statValue, styles.highlightValue)}>¥{commissionSaved.toFixed(2)}</Text>
               <Text className={styles.statLabel}>抽成节省</Text>
+            </View>
+            <View className={styles.statItem}>
+              <Text className={classnames(styles.statValue, styles.settledValue)}>¥{settledAmount.toFixed(0)}</Text>
+              <Text className={styles.statLabel}>已结算</Text>
+            </View>
+            <View className={styles.statItem}>
+              <Text className={classnames(styles.statValue, styles.pendingValue)}>¥{pendingSettleAmount.toFixed(0)}</Text>
+              <Text className={styles.statLabel}>待结算</Text>
             </View>
           </View>
         </View>
@@ -223,6 +256,35 @@ const CommissionPage: React.FC = () => {
                   ¥{(currentSales * ((lastMonthStats?.currentRate || 0.15) - currentTier.rate)).toFixed(2)}
                 </Text>
               </View>
+            </View>
+          </View>
+
+          <View className={styles.monthlyTrendSection}>
+            <Text className={styles.sectionTitle}>月度趋势</Text>
+            {monthlyTrend.length === 0 ? (
+              <View className={styles.emptyCard}>
+                <Text className={styles.emptyText}>暂无月度数据</Text>
+              </View>
+            ) : (
+              monthlyTrend.map(item => (
+                <View
+                  key={item.month}
+                  className={styles.trendRow}
+                  onClick={() => handleMonthClick(item.month)}
+                >
+                  <Text className={styles.trendMonth}>{item.month}</Text>
+                  <Text className={styles.trendSales}>¥{item.totalSales.toLocaleString()}</Text>
+                  <Text className={styles.trendOrders}>{item.totalOrders}单</Text>
+                  <Text className={styles.trendCommission}>¥{item.totalCommission.toFixed(0)}</Text>
+                  <Text className={styles.trendReceive}>¥{item.totalReceive.toFixed(0)}</Text>
+                </View>
+              ))
+            )}
+          </View>
+
+          <View className={styles.settlementEntry}>
+            <View className={styles.settlementButton} onClick={handleGoSettlement}>
+              <Text className={styles.settlementButtonText}>结算打款</Text>
             </View>
           </View>
         </ScrollView>

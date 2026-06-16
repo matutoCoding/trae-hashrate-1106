@@ -82,10 +82,12 @@
 
     .statsGrid {
       display: flex;
+      flex-wrap: wrap;
       gap: $spacing-md;
 
       .statItem {
         flex: 1;
+        min-width: 30%;
         text-align: center;
 
         .statValue {
@@ -97,6 +99,14 @@
 
         .highlightValue {
           color: #FCD34D;
+        }
+
+        .settledValue {
+          color: #6EE7B7;
+        }
+
+        .pendingValue {
+          color: #FCA5A5;
         }
 
         .statLabel {
@@ -304,6 +314,102 @@
       .highlight {
         color: $color-primary;
       }
+    }
+  }
+}
+
+.monthlyTrendSection {
+  margin-top: $spacing-lg;
+
+  .sectionTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .emptyCard {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: $spacing-xl;
+    text-align: center;
+
+    .emptyText {
+      font-size: $font-size-sm;
+      color: $color-text-tertiary;
+    }
+  }
+
+  .trendRow {
+    display: flex;
+    align-items: center;
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: $spacing-md $spacing-lg;
+    margin-bottom: $spacing-sm;
+
+    &:active {
+      opacity: 0.7;
+    }
+
+    .trendMonth {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+      flex: 1.2;
+    }
+
+    .trendSales {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      flex: 1.5;
+      text-align: right;
+    }
+
+    .trendOrders {
+      font-size: $font-size-sm;
+      color: $color-text-tertiary;
+      flex: 1;
+      text-align: right;
+    }
+
+    .trendCommission {
+      font-size: $font-size-sm;
+      color: $color-warning;
+      flex: 1.2;
+      text-align: right;
+    }
+
+    .trendReceive {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $color-success;
+      flex: 1.2;
+      text-align: right;
+    }
+  }
+}
+
+.settlementEntry {
+  margin-top: $spacing-lg;
+  padding-bottom: $spacing-xl;
+
+  .settlementButton {
+    background: $color-primary-gradient;
+    border-radius: $radius-button;
+    padding: $spacing-lg;
+    text-align: center;
+
+    &:active {
+      opacity: 0.8;
+    }
+
+    .settlementButtonText {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-bold;
+      color: $color-text-white;
     }
   }
 }

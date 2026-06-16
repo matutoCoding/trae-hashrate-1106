@@ -30,6 +30,7 @@ interface BoxActions {
   getAvailableBoxes: () => BlindBox[];
   getLockedBoxes: () => BlindBox[];
   getBoxById: (boxId: string) => BlindBox | undefined;
+  markBoxAsSold: (boxId: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 }
@@ -195,6 +196,12 @@ export const useBoxStore = create<BoxState & BoxActions>((set, get) => ({
 
   getBoxById: (boxId) => {
     return get().boxes.find((b) => b.id === boxId);
+  },
+
+  markBoxAsSold: (boxId) => {
+    set(state => ({
+      boxes: state.boxes.map(b => b.id === boxId ? { ...b, status: 'sold' as const } : b)
+    }));
   },
 
   setLoading: (loading) => set({ loading }),
