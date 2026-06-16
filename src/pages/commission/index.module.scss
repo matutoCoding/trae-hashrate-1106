@@ -1,0 +1,223 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #EFF6FF 0%, $color-bg-page 30%);
+}
+
+.header {
+  background: $color-primary-gradient;
+  padding: $spacing-lg $page-padding $spacing-xl;
+  color: $color-text-white;
+
+  .title {
+    font-size: $font-size-xxl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-lg;
+  }
+
+  .currentTierCard {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    backdrop-filter: blur(10rpx);
+
+    .tierInfo {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: $spacing-lg;
+
+      .tierLabel {
+        font-size: $font-size-sm;
+        opacity: 0.9;
+        margin-bottom: $spacing-xs;
+      }
+
+      .tierValue {
+        font-size: $font-size-xxl;
+        font-weight: $font-weight-bold;
+
+        .tierNumber {
+          font-size: $font-size-xxl;
+        }
+
+        .tierRate {
+          font-size: $font-size-lg;
+          color: #FCD34D;
+          margin-left: $spacing-sm;
+        }
+      }
+
+      .rateBadge {
+        background: rgba(252, 211, 77, 0.3);
+        padding: $spacing-xs $spacing-md;
+        border-radius: $radius-button;
+
+        .rateText {
+          font-size: $font-size-lg;
+          font-weight: $font-weight-bold;
+          color: #FCD34D;
+        }
+      }
+    }
+
+    .statsGrid {
+      display: flex;
+      gap: $spacing-md;
+
+      .statItem {
+        flex: 1;
+        text-align: center;
+
+        .statValue {
+          font-size: $font-size-lg;
+          font-weight: $font-weight-bold;
+          display: block;
+          margin-bottom: $spacing-xs;
+        }
+
+        .statLabel {
+          font-size: $font-size-xs;
+          opacity: 0.9;
+        }
+      }
+    }
+  }
+}
+
+.content {
+  padding: 0 $page-padding $spacing-xl;
+  margin-top: -$spacing-lg;
+}
+
+.progressSection {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+
+  .progressTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .progressInfo {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
+
+    .currentSales {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+
+    .nextTier {
+      font-size: $font-size-sm;
+      color: $color-warning;
+      font-weight: $font-weight-medium;
+    }
+  }
+
+  .progressBar {
+    height: 16rpx;
+    background: $color-bg-hover;
+    border-radius: $radius-round;
+    overflow: hidden;
+    margin-bottom: $spacing-sm;
+
+    .progressFill {
+      height: 100%;
+      background: $color-warning;
+      border-radius: $radius-round;
+      transition: width $transition-base;
+    }
+  }
+
+  .progressText {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-align: center;
+  }
+}
+
+.savingsTip {
+  background: linear-gradient(135deg, rgba($color-success, 0.1) 0%, rgba($color-success, 0.05) 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border: 1rpx solid rgba($color-success, 0.2);
+
+  .tipTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-success;
+    margin-bottom: $spacing-sm;
+  }
+
+  .tipContent {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    line-height: 1.6;
+  }
+
+  .highlight {
+    color: $color-success;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.tiersSection {
+  .sectionTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+}
+
+.historySection {
+  margin-top: $spacing-lg;
+
+  .sectionTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .historyCard {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: $spacing-lg;
+
+    .historyRow {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: $spacing-md;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .label {
+        font-size: $font-size-sm;
+        color: $color-text-secondary;
+      }
+
+      .value {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+      }
+
+      .highlight {
+        color: $color-primary;
+      }
+    }
+  }
+}

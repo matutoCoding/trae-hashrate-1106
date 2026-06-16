@@ -1,0 +1,38 @@
+// ============================================
+// 主题配色变量（盲盒寄售平台）
+// ============================================
+
+// 品牌主题色：专业蓝，代表信任与稳定
+$color-primary: #2563EB;
+$color-primary-light: #3B82F6;
+$color-primary-dark: #1D4ED8;
+$color-primary-gradient: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+
+// 功能色
+$color-success: #10B981;
+$color-warning: #F59E0B;
+$color-error: #EF4444;
+$color-info: #2563EB;
+
+// 背景色
+$color-bg-page: #F8FAFC;
+$color-bg-card: #FFFFFF;
+$color-bg-hover: #F1F5F9;
+
+// 文本色
+$color-text-primary: #1E293B;
+$color-text-secondary: #64748B;
+$color-text-tertiary: #94A3B8;
+$color-text-disabled: #CBD5E1;
+$color-text-white: #FFFFFF;
+
+// 边框色
+$color-border: #E2E8F0;
+$color-divider: #F1F5F9;
+
+// 业务色
+$color-price: #F59E0B;
+$color-available: #10B981;
+$color-locked: #EF4444;
+$color-pending: #F59E0B;
+$color-tag-bg: #EFF6FF;

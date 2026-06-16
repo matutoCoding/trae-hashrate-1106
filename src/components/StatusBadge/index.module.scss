@@ -1,0 +1,51 @@
+@use '@/styles/variables.scss' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-xs;
+  padding: $spacing-xs $spacing-sm;
+
+  &.sm {
+    padding: 4rpx $spacing-xs;
+  }
+
+  &.md {
+    padding: $spacing-xs $spacing-sm;
+  }
+
+  .text {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    line-height: 1;
+  }
+
+  &.available, &.completed, &.confirmed, &.matched {
+    background: rgba($color-success, 0.1);
+    .text {
+      color: $color-success;
+    }
+  }
+
+  &.locked, &.mismatch, &.cancelled {
+    background: rgba($color-error, 0.1);
+    .text {
+      color: $color-error;
+    }
+  }
+
+  &.pending, &.released {
+    background: rgba($color-warning, 0.1);
+    .text {
+      color: $color-warning;
+    }
+  }
+
+  &.sold {
+    background: rgba($color-primary, 0.1);
+    .text {
+      color: $color-primary;
+    }
+  }
+}

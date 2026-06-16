@@ -1,0 +1,132 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &.active {
+    border-color: $color-primary;
+    background: linear-gradient(135deg, rgba($color-primary, 0.05) 0%, $color-bg-card 100%);
+  }
+
+  &.next {
+    border-color: $color-warning;
+    border-style: dashed;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-md;
+
+    .tierBadge {
+      background: $color-bg-hover;
+      padding: $spacing-xs $spacing-md;
+      border-radius: $radius-button;
+
+      &.activeBadge {
+        background: $color-primary-gradient;
+      }
+
+      .tierText {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+        color: $color-text-secondary;
+
+        .activeBadge & {
+          color: $color-text-white;
+        }
+      }
+    }
+
+    .activeTag {
+      background: rgba($color-success, 0.1);
+      padding: $spacing-xs $spacing-sm;
+      border-radius: $radius-xs;
+
+      .activeText {
+        font-size: $font-size-xs;
+        color: $color-success;
+        font-weight: $font-weight-medium;
+      }
+    }
+
+    .nextTag {
+      background: rgba($color-warning, 0.1);
+      padding: $spacing-xs $spacing-sm;
+      border-radius: $radius-xs;
+
+      .nextText {
+        font-size: $font-size-xs;
+        color: $color-warning;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+
+  .content {
+    margin-bottom: $spacing-md;
+
+    .rateText {
+      font-size: $font-size-xxl;
+      font-weight: $font-weight-bold;
+      color: $color-primary;
+      display: block;
+      margin-bottom: $spacing-xs;
+    }
+
+    .descText {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+  }
+
+  .progressWrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: $spacing-md;
+
+    .progressBar {
+      flex: 1;
+      height: 12rpx;
+      background: $color-bg-hover;
+      border-radius: $radius-round;
+      overflow: hidden;
+      margin-right: $spacing-sm;
+
+      .progressFill {
+        height: 100%;
+        background: $color-warning;
+        border-radius: $radius-round;
+        transition: width $transition-base;
+      }
+    }
+
+    .progressText {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $color-warning;
+      min-width: 80rpx;
+      text-align: right;
+    }
+  }
+
+  .savingTip {
+    padding: $spacing-sm;
+    background: rgba($color-success, 0.08);
+    border-radius: $radius-sm;
+    text-align: center;
+
+    .savingText {
+      font-size: $font-size-sm;
+      color: $color-success;
+      font-weight: $font-weight-medium;
+    }
+  }
+}
