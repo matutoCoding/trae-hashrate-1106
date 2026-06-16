@@ -25,6 +25,8 @@ const statusLabelMap: Record<string, string> = {
   confirmed: '已确认'
 };
 
+const fmt = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 const ReconciliationPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [detailReconciliationId, setDetailReconciliationId] = useState<string | null>(null);
@@ -108,6 +110,11 @@ const ReconciliationPage: React.FC = () => {
 
   const handleSync = useCallback(() => {
     const seller = sellers[generateSellerIndex];
+    const existing = reconciliations.find(r => r.period === generateMonth && r.sellerId === seller.id);
+    if (existing && existing.settlementStatus === 'completed') {
+      Taro.showToast({ title: '该对账单已打款，无法同步', icon: 'none' });
+      return;
+    }
     const result = syncReconciliationFromTransactions({
       period: generateMonth,
       sellerId: seller.id,
@@ -120,7 +127,7 @@ const ReconciliationPage: React.FC = () => {
     } else {
       Taro.showToast({ title: '该账单已确认，无法同步', icon: 'none' });
     }
-  }, [generateMonth, generateSellerIndex, syncReconciliationFromTransactions, transactions]);
+  }, [generateMonth, generateSellerIndex, syncReconciliationFromTransactions, transactions, reconciliations]);
 
   const handleSystemAmountChange = useCallback((itemId: string, value: string) => {
     setEditValues(prev => ({
@@ -227,15 +234,15 @@ const ReconciliationPage: React.FC = () => {
           </View>
           <View className={styles.summaryRow}>
             <Text className={styles.label}>交易总额</Text>
-            <Text className={classnames(styles.value, styles.highlight)}>¥{totalAmount.toLocaleString()}</Text>
+            <Text className={classnames(styles.value, styles.highlight)}>¥{fmt(totalAmount)}</Text>
           </View>
           <View className={styles.summaryRow}>
             <Text className={styles.label}>平台抽成</Text>
-            <Text className={styles.value}>¥{totalCommission.toLocaleString()}</Text>
+            <Text className={styles.value}>¥{fmt(totalCommission)}</Text>
           </View>
           <View className={styles.summaryRow}>
             <Text className={styles.label}>应结算</Text>
-            <Text className={styles.value}>¥{totalSettle.toLocaleString()}</Text>
+            <Text className={styles.value}>¥{fmt(totalSettle)}</Text>
           </View>
         </View>
 
@@ -337,12 +344,20 @@ const ReconciliationPage: React.FC = () => {
                 </View>
                 <View className={styles.detailInfoRow}>
                   <Text className={styles.detailInfoLabel}>交易总额</Text>
-                  <Text className={styles.detailInfoValue}>¥{detailReconciliation.totalAmount.toLocaleString()}</Text>
+                  <Text className={styles.detailInfoValue}>¥{fmt(detailReconciliation.totalAmount)}</Text>
                 </View>
                 <View className={styles.detailInfoRow}>
                   <Text className={styles.detailInfoLabel}>状态</Text>
                   <Text className={classnames(styles.detailInfoValue, styles[detailReconciliation.status])}>
                     {statusLabelMap[detailReconciliation.status] || detailReconciliation.status}
+                  </Text>
+                </View>
+                <View className={styles.detailInfoRow}>
+                  <Text className={styles.detailInfoLabel}>结算状态</Text>
+                  <Text className={classnames(styles.detailInfoValue, styles[`settle-${detailReconciliation.settlementStatus || 'none'}`])}>
+                    {detailReconciliation.settlementStatus === 'completed' ? '已打款' 
+                      : detailReconciliation.settlementStatus === 'pending' ? '待打款' 
+                      : '未进入结算'}
                   </Text>
                 </View>
               </View>
@@ -352,7 +367,11 @@ const ReconciliationPage: React.FC = () => {
                   <Text className={styles.confirmedText}>
                     确认人：{detailReconciliation.confirmedBy || '未知'} · 确认时间：{dayjs(detailReconciliation.confirmedAt).format('YYYY-MM-DD HH:mm')}
                   </Text>
-                  <Text className={styles.lockedText}>已锁定，不可修改</Text>
+                  {detailReconciliation.settlementStatus === 'completed' ? (
+                    <Text className={styles.lockedText}>该单据已打款，已锁定</Text>
+                  ) : (
+                    <Text className={styles.lockedText}>已锁定，不可修改</Text>
+                  )}
                 </View>
               )}
 
@@ -373,7 +392,7 @@ const ReconciliationPage: React.FC = () => {
                     >
                       <View className={styles.detailItemRow}>
                         <Text className={styles.detailItemLabel}>交易金额</Text>
-                        <Text className={styles.detailItemValue}>¥{item.transactionAmount.toLocaleString()}</Text>
+                        <Text className={styles.detailItemValue}>¥{fmt(item.transactionAmount)}</Text>
                       </View>
                       <View className={styles.detailItemRow}>
                         <Text className={styles.detailItemLabel}>系统金额</Text>
@@ -386,13 +405,13 @@ const ReconciliationPage: React.FC = () => {
                             onBlur={() => handleItemBlur(item.id)}
                           />
                         ) : (
-                          <Text className={styles.detailItemValue}>¥{item.systemAmount.toLocaleString()}</Text>
+                          <Text className={styles.detailItemValue}>¥{fmt(item.systemAmount)}</Text>
                         )}
                       </View>
                       <View className={styles.detailItemRow}>
                         <Text className={styles.detailItemLabel}>差异金额</Text>
                         <Text className={classnames(styles.detailItemValue, { [styles.diffText]: isMismatch })}>
-                          {item.difference > 0 ? '+' : ''}¥{item.difference.toLocaleString()}
+                          {item.difference > 0 ? '+' : ''}¥{fmt(item.difference)}
                         </Text>
                       </View>
                       <View className={styles.detailItemRow}>

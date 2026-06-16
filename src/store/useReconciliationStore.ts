@@ -16,6 +16,11 @@ interface ReconciliationActions {
   getReconciliationsBySeller: (sellerId: string) => Reconciliation[];
   getReconciliationByPeriod: (period: string, sellerId: string) => Reconciliation | undefined;
   confirmReconciliation: (id: string, confirmedBy?: string) => Reconciliation | null;
+  updateSettlementStatus: (
+    reconciliationId: string,
+    settlementStatus: 'none' | 'pending' | 'completed',
+    settlementId?: string
+  ) => Reconciliation | null;
   generateReconciliationFromTransactions: (params: {
     period: string;
     sellerId: string;
@@ -85,6 +90,7 @@ export const useReconciliationStore = create<ReconciliationState & Reconciliatio
       totalSettle,
       transactionCount: filtered.length,
       status: 'pending',
+      settlementStatus: 'none',
       createdAt: new Date().toISOString()
     };
 
@@ -116,6 +122,8 @@ export const useReconciliationStore = create<ReconciliationState & Reconciliatio
     }
 
     if (existing.status === 'confirmed') return null;
+
+    if (existing.settlementStatus === 'completed') return null;
 
     const filtered = transactions.filter(
       (t) =>
@@ -185,6 +193,8 @@ export const useReconciliationStore = create<ReconciliationState & Reconciliatio
 
     if (reconciliation.status === 'confirmed') return null;
 
+    if (reconciliation.settlementStatus === 'completed') return null;
+
     const difference = item.transactionAmount - systemAmount;
     const updatedItem: ReconciliationItem = {
       ...item,
@@ -236,6 +246,8 @@ export const useReconciliationStore = create<ReconciliationState & Reconciliatio
 
     if (reconciliation.status === 'confirmed') return null;
 
+    if (reconciliation.settlementStatus === 'completed') return null;
+
     const updatedReconciliation: Reconciliation = {
       ...reconciliation,
       status: 'confirmed',
@@ -250,6 +262,38 @@ export const useReconciliationStore = create<ReconciliationState & Reconciliatio
     set((state) => ({
       reconciliations: state.reconciliations.map((r) =>
         r.id === id ? updatedReconciliation : r
+      ),
+      reconciliationItems: updatedItems
+    }));
+
+    return updatedReconciliation;
+  },
+
+  updateSettlementStatus: (reconciliationId, settlementStatus, settlementId) => {
+    const state = get();
+    const reconciliation = state.reconciliations.find((r) => r.id === reconciliationId);
+
+    if (!reconciliation) return null;
+
+    if (settlementStatus === 'completed' && reconciliation.status !== 'confirmed') return null;
+
+    const updatedReconciliation: Reconciliation = {
+      ...reconciliation,
+      settlementStatus,
+      settlementId,
+      ...(settlementStatus === 'completed' ? { status: 'confirmed' as const } : {})
+    };
+
+    let updatedItems = state.reconciliationItems;
+    if (settlementStatus === 'completed') {
+      updatedItems = state.reconciliationItems.map((item) =>
+        item.reconciliationId === reconciliationId ? { ...item, editable: false } : item
+      );
+    }
+
+    set((state) => ({
+      reconciliations: state.reconciliations.map((r) =>
+        r.id === reconciliationId ? updatedReconciliation : r
       ),
       reconciliationItems: updatedItems
     }));

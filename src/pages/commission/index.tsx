@@ -18,6 +18,8 @@ const sellers = [
   { id: 'SELLER_005', name: '陈静' }
 ];
 
+const fmt = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 const CommissionPage: React.FC = () => {
 
   const {
@@ -64,12 +66,13 @@ const CommissionPage: React.FC = () => {
   ), [sellerStats, currentSellerId]);
 
   const settledAmount = useMemo(() => {
+    const currentMonth = dayjs().format('YYYY-MM');
     return getSettlementsBySeller(currentSellerId)
-      .filter(s => s.status === 'completed')
+      .filter(s => s.status === 'completed' && s.period === currentMonth)
       .reduce((sum, s) => sum + s.totalAmount, 0);
   }, [currentSellerId, getSettlementsBySeller]);
 
-  const pendingSettleAmount = totalReceive - settledAmount;
+  const pendingSettleAmount = Math.max(0, totalReceive - settledAmount);
 
   const monthlyTrend = useMemo(() => {
     return sellerStats
@@ -134,7 +137,7 @@ const CommissionPage: React.FC = () => {
 
           <View className={styles.statsGrid}>
             <View className={styles.statItem}>
-              <Text className={styles.statValue}>¥{currentSales.toLocaleString()}</Text>
+              <Text className={styles.statValue}>¥{fmt(currentSales)}</Text>
               <Text className={styles.statLabel}>本月成交额</Text>
             </View>
             <View className={styles.statItem}>
@@ -142,19 +145,19 @@ const CommissionPage: React.FC = () => {
               <Text className={styles.statLabel}>成交订单</Text>
             </View>
             <View className={styles.statItem}>
-              <Text className={styles.statValue}>¥{totalReceive.toFixed(0)}</Text>
+              <Text className={styles.statValue}>¥{fmt(totalReceive)}</Text>
               <Text className={styles.statLabel}>预计实收</Text>
             </View>
             <View className={styles.statItem}>
-              <Text className={classnames(styles.statValue, styles.highlightValue)}>¥{commissionSaved.toFixed(2)}</Text>
+              <Text className={classnames(styles.statValue, styles.highlightValue)}>¥{fmt(commissionSaved)}</Text>
               <Text className={styles.statLabel}>抽成节省</Text>
             </View>
             <View className={styles.statItem}>
-              <Text className={classnames(styles.statValue, styles.settledValue)}>¥{settledAmount.toFixed(0)}</Text>
+              <Text className={classnames(styles.statValue, styles.settledValue)}>¥{fmt(settledAmount)}</Text>
               <Text className={styles.statLabel}>已结算</Text>
             </View>
             <View className={styles.statItem}>
-              <Text className={classnames(styles.statValue, styles.pendingValue)}>¥{pendingSettleAmount.toFixed(0)}</Text>
+              <Text className={classnames(styles.statValue, styles.pendingValue)}>¥{fmt(pendingSettleAmount)}</Text>
               <Text className={styles.statLabel}>待结算</Text>
             </View>
           </View>
@@ -166,10 +169,10 @@ const CommissionPage: React.FC = () => {
           <View className={styles.progressSection}>
             <Text className={styles.progressTitle}>升档进度</Text>
             <View className={styles.progressInfo}>
-              <Text className={styles.currentSales}>当前：¥{currentSales.toLocaleString()}</Text>
+              <Text className={styles.currentSales}>当前：¥{fmt(currentSales)}</Text>
               {nextRequirement && (
                 <Text className={styles.nextTier}>
-                  再卖 ¥{nextRequirement.needSales.toLocaleString()} 可降至 {formatRate(nextRequirement.nextRate)}
+                  再卖 ¥{fmt(nextRequirement.needSales)} 可降至 {formatRate(nextRequirement.nextRate)}
                 </Text>
               )}
             </View>
@@ -178,7 +181,7 @@ const CommissionPage: React.FC = () => {
             </View>
             <Text className={styles.progressText}>
               {progress.toFixed(1)}% 已完成
-              {nextRequirement ? `，还需 ¥${nextRequirement.needSales.toLocaleString()} 升级` : '，已达最高档位'}
+              {nextRequirement ? `，还需 ¥${fmt(nextRequirement.needSales)} 升级` : '，已达最高档位'}
             </Text>
           </View>
 
@@ -192,7 +195,7 @@ const CommissionPage: React.FC = () => {
                 </Text>
                 ！本月已累计节省抽成约
                 <Text className={styles.highlight}>
-                  ¥{commissionSaved.toFixed(2)}
+                  ¥{fmt(commissionSaved)}
                 </Text>
               </Text>
             </View>
@@ -241,7 +244,7 @@ const CommissionPage: React.FC = () => {
               <View className={styles.historyRow}>
                 <Text className={styles.label}>上月成交额</Text>
                 <Text className={styles.value}>
-                  ¥{lastMonthStats?.totalSales.toLocaleString() || 0}
+                  ¥{fmt(lastMonthStats?.totalSales || 0)}
                 </Text>
               </View>
               <View className={styles.historyRow}>
@@ -253,7 +256,7 @@ const CommissionPage: React.FC = () => {
               <View className={styles.historyRow}>
                 <Text className={styles.label}>本月预计节省</Text>
                 <Text className={classnames(styles.value, styles.highlight)}>
-                  ¥{(currentSales * ((lastMonthStats?.currentRate || 0.15) - currentTier.rate)).toFixed(2)}
+                  ¥{fmt(currentSales * ((lastMonthStats?.currentRate || 0.15) - currentTier.rate))}
                 </Text>
               </View>
             </View>
@@ -273,10 +276,10 @@ const CommissionPage: React.FC = () => {
                   onClick={() => handleMonthClick(item.month)}
                 >
                   <Text className={styles.trendMonth}>{item.month}</Text>
-                  <Text className={styles.trendSales}>¥{item.totalSales.toLocaleString()}</Text>
+                  <Text className={styles.trendSales}>¥{fmt(item.totalSales)}</Text>
                   <Text className={styles.trendOrders}>{item.totalOrders}单</Text>
-                  <Text className={styles.trendCommission}>¥{item.totalCommission.toFixed(0)}</Text>
-                  <Text className={styles.trendReceive}>¥{item.totalReceive.toFixed(0)}</Text>
+                  <Text className={styles.trendCommission}>¥{fmt(item.totalCommission)}</Text>
+                  <Text className={styles.trendReceive}>¥{fmt(item.totalReceive)}</Text>
                 </View>
               ))
             )}

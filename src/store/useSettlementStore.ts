@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import dayjs from 'dayjs';
-import type { Settlement } from '@/types';
+import type { Settlement, Transaction } from '@/types';
 
 interface SettlementState {
   settlements: Settlement[];
@@ -17,7 +17,7 @@ interface SettlementActions {
     reconciliationIds: string[];
     totalAmount: number;
   }) => Settlement | null;
-  confirmSettlement: (id: string, confirmedBy?: string) => Settlement | null;
+  confirmSettlement: (id: string, confirmedBy?: string) => { settlement: Settlement; transactionId?: string } | null;
   getSettlementsBySeller: (sellerId: string) => Settlement[];
   getSettlementsByPeriod: (period: string, sellerId: string) => Settlement | undefined;
   getSettlementById: (id: string) => Settlement | undefined;
@@ -25,6 +25,17 @@ interface SettlementActions {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 }
+
+let _useTransactionStore: any = null;
+let _useReconciliationStore: any = null;
+
+export const bindTransactionStore = (store: any) => {
+  _useTransactionStore = store;
+};
+
+export const bindReconciliationStore = (store: any) => {
+  _useReconciliationStore = store;
+};
 
 export const useSettlementStore = create<SettlementState & SettlementActions>((set, get) => ({
   settlements: [],
@@ -53,6 +64,13 @@ export const useSettlementStore = create<SettlementState & SettlementActions>((s
       settlements: [...state.settlements, settlement]
     }));
 
+    if (_useReconciliationStore) {
+      const recActions = _useReconciliationStore.getState();
+      reconciliationIds.forEach((rid) => {
+        recActions.updateSettlementStatus?.(rid, 'pending', settlement.id);
+      });
+    }
+
     return settlement;
   },
 
@@ -69,11 +87,48 @@ export const useSettlementStore = create<SettlementState & SettlementActions>((s
       confirmedBy
     };
 
+    let transactionId: string | undefined;
+
+    if (_useTransactionStore) {
+      const txnActions = _useTransactionStore.getState();
+      const txnId = `txn-settle-${Date.now()}`;
+      const settlementTxn: Transaction = {
+        id: txnId,
+        type: 'settlement',
+        amount: settlement.totalAmount,
+        sellerId: settlement.sellerId,
+        sellerName: settlement.sellerName,
+        commissionRate: 0,
+        commissionAmount: 0,
+        sellerReceiveAmount: settlement.totalAmount,
+        platformReceiveAmount: 0,
+        status: 'completed',
+        createdAt: dayjs().toISOString(),
+        completedAt: dayjs().toISOString(),
+        remark: `结算打款: ${settlement.period}`
+      };
+
+      if (txnActions.addTransaction) {
+        txnActions.addTransaction(settlementTxn);
+      } else if (txnActions.setTransactions) {
+        txnActions.setTransactions([settlementTxn, ..._useTransactionStore.getState().transactions]);
+      }
+
+      transactionId = txnId;
+    }
+
+    if (_useReconciliationStore) {
+      const recActions = _useReconciliationStore.getState();
+      settlement.reconciliationIds.forEach((rid) => {
+        recActions.updateSettlementStatus?.(rid, 'completed', settlement.id);
+      });
+    }
+
     set((state) => ({
       settlements: state.settlements.map((s) => (s.id === id ? updated : s))
     }));
 
-    return updated;
+    return { settlement: updated, transactionId };
   },
 
   getSettlementsBySeller: (sellerId) =>

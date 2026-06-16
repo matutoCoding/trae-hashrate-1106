@@ -374,6 +374,18 @@
       &.confirmed {
         color: $color-primary;
       }
+
+      &.settle-none {
+        color: $color-text-secondary;
+      }
+
+      &.settle-pending {
+        color: $color-warning;
+      }
+
+      &.settle-completed {
+        color: $color-success;
+      }
     }
   }
 }

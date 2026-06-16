@@ -136,6 +136,8 @@ export interface Reconciliation {
   totalSettle: number;
   transactionCount: number;
   status: ReconciliationStatus;
+  settlementStatus?: 'none' | 'pending' | 'completed';
+  settlementId?: string;
   createdAt: string;
   confirmedAt?: string;
   confirmedBy?: string;

@@ -3,7 +3,8 @@ import { View, Text, Picker } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
-import { useSettlementStore } from '@/store/useSettlementStore';
+import { useSettlementStore, bindTransactionStore, bindReconciliationStore } from '@/store/useSettlementStore';
+import { useTransactionStore } from '@/store/useTransactionStore';
 import { useReconciliationStore } from '@/store/useReconciliationStore';
 import { useAppInitStore } from '@/store/useAppInitStore';
 import Empty from '@/components/Empty';
@@ -16,6 +17,10 @@ const sellers = [
   { id: 'SELLER_004', name: '刘伟' },
   { id: 'SELLER_005', name: '陈静' }
 ];
+
+const formatMoney = (value: number): string => {
+  return value.toFixed(2).toLocaleString();
+};
 
 const SettlementPage: React.FC = () => {
   const [generateMonth, setGenerateMonth] = useState(dayjs().format('YYYY-MM'));
@@ -30,6 +35,11 @@ const SettlementPage: React.FC = () => {
   } = useSettlementStore();
 
   const { reconciliations, getReconciliationById } = useReconciliationStore();
+
+  useEffect(() => {
+    bindTransactionStore(useTransactionStore);
+    bindReconciliationStore(useReconciliationStore);
+  }, []);
 
   useEffect(() => {
     useAppInitStore.getState().ensureInitialized();
@@ -97,7 +107,12 @@ const SettlementPage: React.FC = () => {
         if (res.confirm) {
           const result = confirmSettlement(id, '当前操作员');
           if (result) {
-            Taro.showToast({ title: '打款确认成功', icon: 'success' });
+            const { settlement, transactionId } = result;
+            Taro.showModal({
+              title: '打款成功！',
+              content: `流水编号：${transactionId ?? '-'}\n打款金额：¥${formatMoney(settlement.totalAmount)}\n卖家：${settlement.sellerName}\n关联对账单：${settlement.reconciliationIds.length}份`,
+              showCancel: false
+            });
           }
         }
       }
@@ -120,19 +135,19 @@ const SettlementPage: React.FC = () => {
           <View className={styles.summaryGrid}>
             <View className={styles.summaryItem}>
               <Text className={classnames(styles.summaryValue, styles.completed)}>
-                ¥{completedTotal.toLocaleString()}
+                ¥{formatMoney(completedTotal)}
               </Text>
               <Text className={styles.summaryLabel}>已结算</Text>
             </View>
             <View className={styles.summaryItem}>
               <Text className={classnames(styles.summaryValue, styles.pending)}>
-                ¥{pendingTotal.toLocaleString()}
+                ¥{formatMoney(pendingTotal)}
               </Text>
               <Text className={styles.summaryLabel}>待结算</Text>
             </View>
             <View className={styles.summaryItem}>
               <Text className={classnames(styles.summaryValue, styles.total)}>
-                ¥{grandTotal.toLocaleString()}
+                ¥{formatMoney(grandTotal)}
               </Text>
               <Text className={styles.summaryLabel}>总打款</Text>
             </View>
@@ -201,7 +216,7 @@ const SettlementPage: React.FC = () => {
                     <View className={styles.cardRow}>
                       <Text className={styles.cardLabel}>打款金额</Text>
                       <Text className={classnames(styles.cardValue, styles.amount)}>
-                        ¥{settlement.totalAmount.toLocaleString()}
+                        ¥{formatMoney(settlement.totalAmount)}
                       </Text>
                     </View>
                     <View className={styles.cardRow}>
@@ -245,10 +260,27 @@ const SettlementPage: React.FC = () => {
                       {linkedRecs.length > 0 ? (
                         linkedRecs.map((linkedRec, idx) => (
                           <View key={linkedRec?.id ?? idx} className={styles.detailRow}>
-                            <Text className={styles.detailLabel}>{linkedRec?.period ?? '-'}</Text>
-                            <Text className={styles.detailValue}>
-                              ¥{(linkedRec?.totalSettle ?? 0).toLocaleString()} · {linkedRec?.sellerName ?? '-'}
-                            </Text>
+                            <View className={styles.detailLine}>
+                              <Text className={styles.detailText}>
+                                {linkedRec?.period ?? '-'} 对账
+                              </Text>
+                              <Text className={styles.detailSep}>|</Text>
+                              <Text className={styles.detailText}>
+                                交易{linkedRec?.transactionCount ?? 0}笔
+                              </Text>
+                              <Text className={styles.detailSep}>|</Text>
+                              <Text className={styles.detailText}>
+                                抽成¥{formatMoney(linkedRec?.totalCommission ?? 0)}
+                              </Text>
+                              <Text className={styles.detailSep}>|</Text>
+                              <Text className={styles.detailText}>
+                                应结算¥{formatMoney(linkedRec?.totalSettle ?? 0)}
+                              </Text>
+                              <Text className={styles.detailSep}>|</Text>
+                              <Text className={styles.detailText}>
+                                确认人{linkedRec?.confirmedBy ?? '-'}
+                              </Text>
+                            </View>
                           </View>
                         ))) : (
                         <View className={styles.detailRow}>

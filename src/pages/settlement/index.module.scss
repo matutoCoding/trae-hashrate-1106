@@ -303,6 +303,23 @@
       font-weight: $font-weight-medium;
       color: $color-text-secondary;
     }
+
+    .detailLine {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: $spacing-xs;
+    }
+
+    .detailSep {
+      font-size: $font-size-xs;
+      color: $color-divider;
+    }
+
+    .detailText {
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
+    }
   }
 }
 
