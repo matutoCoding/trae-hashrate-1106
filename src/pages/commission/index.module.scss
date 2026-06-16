@@ -10,10 +10,28 @@
   padding: $spacing-lg $page-padding $spacing-xl;
   color: $color-text-white;
 
+  .headerTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+  }
+
   .title {
     font-size: $font-size-xxl;
     font-weight: $font-weight-bold;
-    margin-bottom: $spacing-lg;
+  }
+
+  .sellerPicker {
+    background: rgba(255, 255, 255, 0.2);
+    padding: $spacing-xs $spacing-md;
+    border-radius: $radius-button;
+
+    .sellerPickerText {
+      font-size: $font-size-sm;
+      color: $color-text-white;
+      font-weight: $font-weight-medium;
+    }
   }
 
   .currentTierCard {
@@ -75,6 +93,10 @@
           font-weight: $font-weight-bold;
           display: block;
           margin-bottom: $spacing-xs;
+        }
+
+        .highlightValue {
+          color: #FCD34D;
         }
 
         .statLabel {
@@ -176,6 +198,70 @@
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
     margin-bottom: $spacing-md;
+  }
+}
+
+.transactionSection {
+  margin-top: $spacing-lg;
+
+  .sectionTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .emptyCard {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: $spacing-xl;
+    text-align: center;
+
+    .emptyText {
+      font-size: $font-size-sm;
+      color: $color-text-tertiary;
+    }
+  }
+
+  .txnCard {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: $spacing-md $spacing-lg;
+    margin-bottom: $spacing-sm;
+
+    .txnRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-xs;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .txnId {
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+    }
+
+    .txnAmount {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+    }
+
+    .txnBoxName {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+
+    .txnDetail {
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+    }
   }
 }
 

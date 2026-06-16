@@ -103,6 +103,11 @@
       color: $color-text-secondary;
       font-weight: $font-weight-medium;
       margin-bottom: $spacing-sm;
+
+      .required {
+        color: $color-error;
+        font-size: $font-size-xs;
+      }
     }
   }
 

@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
+import { View, Text, ScrollView, Picker, Input } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
+import dayjs from 'dayjs';
 import ReconciliationCard from '@/components/ReconciliationCard';
 import Empty from '@/components/Empty';
 import { useReconciliationStore } from '@/store/useReconciliationStore';
-import { mockReconciliations, mockReconciliationItems } from '@/data/reconciliationData';
+import { useTransactionStore } from '@/store/useTransactionStore';
+import { useAppInitStore } from '@/store/useAppInitStore';
 import styles from './index.module.scss';
+
+const sellers = [
+  { id: 'SELLER_001', name: '张明' },
+  { id: 'SELLER_002', name: '李华' },
+  { id: 'SELLER_003', name: '王芳' },
+  { id: 'SELLER_004', name: '刘伟' },
+  { id: 'SELLER_005', name: '陈静' }
+];
 
 const statusLabelMap: Record<string, string> = {
   pending: '待对账',
@@ -18,24 +28,27 @@ const statusLabelMap: Record<string, string> = {
 const ReconciliationPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [detailReconciliationId, setDetailReconciliationId] = useState<string | null>(null);
+  const [showGenerateForm, setShowGenerateForm] = useState(false);
+  const [generateMonth, setGenerateMonth] = useState(dayjs().format('YYYY-MM'));
+  const [generateSellerIndex, setGenerateSellerIndex] = useState(0);
+  const [editValues, setEditValues] = useState<Record<string, { systemAmount: string; remark: string }>>({});
 
   const {
     reconciliations,
-    setReconciliations,
-    setReconciliationItems,
     confirmReconciliation,
     getReconciliationItems: getItems,
-    getReconciliationById
+    getReconciliationById,
+    generateReconciliationFromTransactions,
+    updateReconciliationItem
   } = useReconciliationStore();
 
+  const { transactions } = useTransactionStore();
+
   useEffect(() => {
-    console.log('[ReconciliationPage] 初始化对账数据');
-    setReconciliations(mockReconciliations);
-    setReconciliationItems(mockReconciliationItems);
-  }, [setReconciliations, setReconciliationItems]);
+    useAppInitStore.getState().ensureInitialized();
+  }, []);
 
   usePullDownRefresh(() => {
-    console.log('[ReconciliationPage] 下拉刷新');
     setTimeout(() => {
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
@@ -43,7 +56,6 @@ const ReconciliationPage: React.FC = () => {
   });
 
   const handleConfirm = useCallback((id: string) => {
-    console.log('[ReconciliationPage] 确认对账', { id });
     Taro.showModal({
       title: '确认对账',
       content: '确认后将无法修改，是否继续？',
@@ -60,11 +72,61 @@ const ReconciliationPage: React.FC = () => {
 
   const handleViewDetail = useCallback((id: string) => {
     setDetailReconciliationId(id);
+    setEditValues({});
   }, []);
 
   const handleCloseDetail = useCallback(() => {
     setDetailReconciliationId(null);
+    setEditValues({});
   }, []);
+
+  const handleGenerate = useCallback(() => {
+    const seller = sellers[generateSellerIndex];
+    const result = generateReconciliationFromTransactions({
+      period: generateMonth,
+      sellerId: seller.id,
+      sellerName: seller.name,
+      transactions
+    });
+    if (result) {
+      Taro.showToast({ title: '生成成功', icon: 'success' });
+      setShowGenerateForm(false);
+    } else {
+      Taro.showToast({ title: '该月该卖家对账单已存在', icon: 'none' });
+    }
+  }, [generateMonth, generateSellerIndex, generateReconciliationFromTransactions, transactions]);
+
+  const handleSystemAmountChange = useCallback((itemId: string, value: string) => {
+    setEditValues(prev => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] || { systemAmount: '', remark: '' }),
+        systemAmount: value
+      }
+    }));
+  }, []);
+
+  const handleRemarkChange = useCallback((itemId: string, value: string) => {
+    setEditValues(prev => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] || { systemAmount: '', remark: '' }),
+        remark: value
+      }
+    }));
+  }, []);
+
+  const handleItemBlur = useCallback((itemId: string) => {
+    const edit = editValues[itemId];
+    if (!edit) return;
+    const systemAmount = parseFloat(edit.systemAmount);
+    if (isNaN(systemAmount)) return;
+    updateReconciliationItem({
+      itemId,
+      systemAmount,
+      remark: edit.remark
+    });
+  }, [editValues, updateReconciliationItem]);
 
   const filteredReconciliations = reconciliations.filter(r => {
     if (statusFilter === 'all') return true;
@@ -153,7 +215,53 @@ const ReconciliationPage: React.FC = () => {
 
         <ScrollView scrollY>
           <View className={styles.listSection}>
-            <Text className={styles.listTitle}>对账单列表</Text>
+            <View className={styles.listTitleRow}>
+              <Text className={styles.listTitle}>对账单列表</Text>
+              <View
+                className={styles.generateBtn}
+                onClick={() => setShowGenerateForm(prev => !prev)}
+              >
+                <Text className={styles.generateBtnText}>
+                  {showGenerateForm ? '收起' : '+ 生成对账单'}
+                </Text>
+              </View>
+            </View>
+
+            {showGenerateForm && (
+              <View className={styles.generateForm}>
+                <View className={styles.formRow}>
+                  <Text className={styles.formLabel}>月份</Text>
+                  <Picker
+                    mode='date'
+                    fields='month'
+                    value={generateMonth}
+                    onChange={e => setGenerateMonth(e.detail.value)}
+                  >
+                    <View className={styles.pickerValue}>
+                      <Text>{generateMonth}</Text>
+                    </View>
+                  </Picker>
+                </View>
+                <View className={styles.formRow}>
+                  <Text className={styles.formLabel}>卖家</Text>
+                  <Picker
+                    mode='selector'
+                    range={sellers.map(s => s.name)}
+                    value={generateSellerIndex}
+                    onChange={e => setGenerateSellerIndex(Number(e.detail.value))}
+                  >
+                    <View className={styles.pickerValue}>
+                      <Text>{sellers[generateSellerIndex].name}</Text>
+                    </View>
+                  </Picker>
+                </View>
+                <View className={styles.formActions}>
+                  <View className={styles.formSubmitBtn} onClick={handleGenerate}>
+                    <Text className={styles.formSubmitBtnText}>生成</Text>
+                  </View>
+                </View>
+              </View>
+            )}
 
             {filteredReconciliations.length > 0 ? (
               filteredReconciliations.map(reconciliation => (
@@ -210,11 +318,12 @@ const ReconciliationPage: React.FC = () => {
                 </View>
               </View>
 
-              {detailReconciliation.confirmedAt && (
+              {detailReconciliation.status === 'confirmed' && detailReconciliation.confirmedAt && (
                 <View className={styles.confirmedInfo}>
                   <Text className={styles.confirmedText}>
-                    已确认 · {new Date(detailReconciliation.confirmedAt).toLocaleString('zh-CN')}
+                    确认人：{detailReconciliation.confirmedBy || '未知'} · 确认时间：{dayjs(detailReconciliation.confirmedAt).format('YYYY-MM-DD HH:mm')}
                   </Text>
+                  <Text className={styles.lockedText}>已锁定，不可修改</Text>
                 </View>
               )}
 
@@ -226,6 +335,8 @@ const ReconciliationPage: React.FC = () => {
               {detailItems.length > 0 ? (
                 detailItems.map(item => {
                   const isMismatch = item.status === 'mismatch' || item.difference !== 0;
+                  const canEdit = item.editable && detailReconciliation.status !== 'confirmed';
+                  const editValue = editValues[item.id];
                   return (
                     <View
                       key={item.id}
@@ -237,7 +348,17 @@ const ReconciliationPage: React.FC = () => {
                       </View>
                       <View className={styles.detailItemRow}>
                         <Text className={styles.detailItemLabel}>系统金额</Text>
-                        <Text className={styles.detailItemValue}>¥{item.systemAmount.toLocaleString()}</Text>
+                        {canEdit ? (
+                          <Input
+                            className={styles.editInput}
+                            type='digit'
+                            value={editValue?.systemAmount ?? String(item.systemAmount)}
+                            onInput={e => handleSystemAmountChange(item.id, e.detail.value)}
+                            onBlur={() => handleItemBlur(item.id)}
+                          />
+                        ) : (
+                          <Text className={styles.detailItemValue}>¥{item.systemAmount.toLocaleString()}</Text>
+                        )}
                       </View>
                       <View className={styles.detailItemRow}>
                         <Text className={styles.detailItemLabel}>差异金额</Text>
@@ -245,18 +366,37 @@ const ReconciliationPage: React.FC = () => {
                           {item.difference > 0 ? '+' : ''}¥{item.difference.toLocaleString()}
                         </Text>
                       </View>
-                      {item.remark && (
-                        <View className={styles.detailItemRow}>
-                          <Text className={styles.detailItemLabel}>备注</Text>
-                          <Text className={styles.detailItemValue}>{item.remark}</Text>
-                        </View>
-                      )}
+                      <View className={styles.detailItemRow}>
+                        <Text className={styles.detailItemLabel}>差异备注</Text>
+                        {canEdit ? (
+                          <Input
+                            className={styles.editInput}
+                            value={editValue?.remark ?? item.remark ?? ''}
+                            placeholder='输入备注'
+                            onInput={e => handleRemarkChange(item.id, e.detail.value)}
+                            onBlur={() => handleItemBlur(item.id)}
+                          />
+                        ) : (
+                          <Text className={styles.detailItemValue}>{item.remark || '-'}</Text>
+                        )}
+                      </View>
                     </View>
                   );
                 })
               ) : (
                 <View className={styles.detailEmpty}>
                   <Text className={styles.detailEmptyText}>暂无交易明细</Text>
+                </View>
+              )}
+
+              {detailReconciliation.status !== 'confirmed' && (
+                <View className={styles.detailActions}>
+                  <View
+                    className={styles.confirmBtn}
+                    onClick={() => handleConfirm(detailReconciliation.id)}
+                  >
+                    <Text className={styles.confirmBtnText}>确认对账</Text>
+                  </View>
                 </View>
               )}
             </ScrollView>

@@ -155,11 +155,96 @@
 }
 
 .listSection {
+  .listTitleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
+  }
+
   .listTitle {
     font-size: $font-size-md;
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
+  }
+
+  .generateBtn {
+    background: $color-primary-gradient;
+    border-radius: $radius-button;
+    padding: 0 $spacing-md;
+    height: $button-height-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .generateBtnText {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $color-text-white;
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+  }
+
+  .generateForm {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: $spacing-md;
     margin-bottom: $spacing-md;
+
+    .formRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: $spacing-md;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .formLabel {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      font-weight: $font-weight-medium;
+    }
+
+    .pickerValue {
+      background: $color-bg-page;
+      border-radius: $radius-md;
+      padding: $spacing-sm $spacing-md;
+      font-size: $font-size-sm;
+      color: $color-text-primary;
+    }
+
+    .formActions {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: $spacing-sm;
+    }
+
+    .formSubmitBtn {
+      background: $color-primary-gradient;
+      border-radius: $radius-button;
+      padding: 0 $spacing-xl;
+      height: $button-height-sm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .formSubmitBtnText {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $color-text-white;
+      }
+
+      &:active {
+        transform: scale(0.96);
+      }
+    }
   }
 }
 
@@ -303,6 +388,14 @@
     font-size: $font-size-sm;
     color: $color-success;
     font-weight: $font-weight-medium;
+    display: block;
+    margin-bottom: $spacing-xs;
+  }
+
+  .lockedText {
+    font-size: $font-size-xs;
+    color: $color-error;
+    font-weight: $font-weight-medium;
   }
 }
 
@@ -347,6 +440,7 @@
     .detailItemLabel {
       font-size: $font-size-sm;
       color: $color-text-secondary;
+      flex-shrink: 0;
     }
 
     .detailItemValue {
@@ -358,6 +452,17 @@
     .diffText {
       color: $color-error;
     }
+
+    .editInput {
+      font-size: $font-size-sm;
+      color: $color-text-primary;
+      background: $color-bg-card;
+      border: 1rpx solid $color-divider;
+      border-radius: $radius-sm;
+      padding: $spacing-xs $spacing-sm;
+      width: 240rpx;
+      text-align: right;
+    }
   }
 }
 
@@ -368,5 +473,28 @@
   .detailEmptyText {
     font-size: $font-size-sm;
     color: $color-text-tertiary;
+  }
+}
+
+.detailActions {
+  padding: $spacing-lg 0;
+
+  .confirmBtn {
+    background: $color-primary-gradient;
+    border-radius: $radius-button;
+    height: $button-height-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .confirmBtnText {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-white;
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
   }
 }

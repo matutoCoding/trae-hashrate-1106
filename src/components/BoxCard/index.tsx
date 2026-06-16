@@ -12,9 +12,10 @@ interface BoxCardProps {
   onMatch?: (boxId: string) => void;
   onViewDetail?: (boxId: string) => void;
   onCompleteTransaction?: (boxId: string) => void;
+  transactionInfo?: { transactionId: string; sellerReceive: number };
 }
 
-const BoxCard: React.FC<BoxCardProps> = ({ box, onMatch, onViewDetail, onCompleteTransaction }) => {
+const BoxCard: React.FC<BoxCardProps> = ({ box, onMatch, onViewDetail, onCompleteTransaction, transactionInfo }) => {
   const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
@@ -122,6 +123,14 @@ const BoxCard: React.FC<BoxCardProps> = ({ box, onMatch, onViewDetail, onComplet
             </Button>
           )}
         </View>
+
+        {box.status === 'sold' && transactionInfo && (
+          <View className={styles.transactionInfo}>
+            <Text className={styles.transactionText}>
+              流水号 {transactionInfo.transactionId} | 卖家实收 ¥{transactionInfo.sellerReceive.toFixed(2)}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );

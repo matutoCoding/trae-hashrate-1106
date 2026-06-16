@@ -1,12 +1,21 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Picker } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
 import CommissionTierCard from '@/components/CommissionTierCard';
 import { useCommissionStore } from '@/store/useCommissionStore';
-import { mockSellerStats } from '@/data/commissionData';
+import { useTransactionStore } from '@/store/useTransactionStore';
+import { useAppInitStore } from '@/store/useAppInitStore';
 import dayjs from 'dayjs';
 import styles from './index.module.scss';
+
+const sellers = [
+  { id: 'SELLER_001', name: '张明' },
+  { id: 'SELLER_002', name: '李华' },
+  { id: 'SELLER_003', name: '王芳' },
+  { id: 'SELLER_004', name: '刘伟' },
+  { id: 'SELLER_005', name: '陈静' }
+];
 
 const CommissionPage: React.FC = () => {
 
@@ -14,20 +23,24 @@ const CommissionPage: React.FC = () => {
     tiers,
     sellerStats,
     currentSellerId,
-    setSellerStats,
+    setCurrentSellerId,
     getCurrentTier,
     getCurrentSellerStats,
     calculateNextTierRequirement,
     formatRate
   } = useCommissionStore();
 
+  const { getTransactionsBySeller } = useTransactionStore();
+
+  const [sellerPickerIndex, setSellerPickerIndex] = useState(
+    sellers.findIndex(s => s.id === currentSellerId)
+  );
+
   useEffect(() => {
-    console.log('[CommissionPage] 初始化抽成数据');
-    setSellerStats(mockSellerStats);
-  }, [setSellerStats]);
+    useAppInitStore.getState().ensureInitialized();
+  }, []);
 
   usePullDownRefresh(() => {
-    console.log('[CommissionPage] 下拉刷新');
     setTimeout(() => {
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
@@ -38,6 +51,8 @@ const CommissionPage: React.FC = () => {
   const currentSales = currentStats?.totalSales || 0;
   const currentOrders = currentStats?.totalOrders || 0;
   const totalReceive = currentStats?.totalReceive || 0;
+  const currentRate = currentStats?.currentRate || 0.15;
+  const commissionSaved = currentSales * (0.15 - currentRate);
 
   const { tier: currentTier, nextTier, progress } = getCurrentTier(currentSales);
   const nextRequirement = calculateNextTierRequirement(currentSales);
@@ -46,10 +61,37 @@ const CommissionPage: React.FC = () => {
     s => s.sellerId === currentSellerId && s.month === dayjs().subtract(1, 'month').format('YYYY-MM')
   ), [sellerStats, currentSellerId]);
 
+  const recentTransactions = useMemo(() => {
+    const sellerTxns = getTransactionsBySeller(currentSellerId)
+      .filter(t => t.status === 'completed')
+      .sort((a, b) => new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime());
+    return sellerTxns.slice(0, 5);
+  }, [currentSellerId, getTransactionsBySeller]);
+
+  const handleSellerChange = (e) => {
+    const index = e.detail.value;
+    setSellerPickerIndex(index);
+    setCurrentSellerId(sellers[index].id);
+  };
+
+  const currentSellerName = sellers.find(s => s.id === currentSellerId)?.name || '';
+
   return (
     <View className={styles.page}>
       <View className={styles.header}>
-        <Text className={styles.title}>📊 阶梯抽成</Text>
+        <View className={styles.headerTop}>
+          <Text className={styles.title}>📊 卖家月度经营看板</Text>
+          <Picker
+            mode='selector'
+            range={sellers.map(s => s.name)}
+            value={sellerPickerIndex}
+            onChange={handleSellerChange}
+          >
+            <View className={styles.sellerPicker}>
+              <Text className={styles.sellerPickerText}>{currentSellerName} ▾</Text>
+            </View>
+          </Picker>
+        </View>
 
         <View className={styles.currentTierCard}>
           <View className={styles.tierInfo}>
@@ -77,6 +119,10 @@ const CommissionPage: React.FC = () => {
             <View className={styles.statItem}>
               <Text className={styles.statValue}>¥{totalReceive.toFixed(0)}</Text>
               <Text className={styles.statLabel}>预计实收</Text>
+            </View>
+            <View className={styles.statItem}>
+              <Text className={classnames(styles.statValue, styles.highlightValue)}>¥{commissionSaved.toFixed(2)}</Text>
+              <Text className={styles.statLabel}>抽成节省</Text>
             </View>
           </View>
         </View>
@@ -113,7 +159,7 @@ const CommissionPage: React.FC = () => {
                 </Text>
                 ！本月已累计节省抽成约
                 <Text className={styles.highlight}>
-                  ¥{(currentSales * (0.15 - currentTier.rate)).toFixed(2)}
+                  ¥{commissionSaved.toFixed(2)}
                 </Text>
               </Text>
             </View>
@@ -130,6 +176,30 @@ const CommissionPage: React.FC = () => {
                 progress={tier.tier === nextTier?.tier ? progress : undefined}
               />
             ))}
+          </View>
+
+          <View className={styles.transactionSection}>
+            <Text className={styles.sectionTitle}>最近成交流水</Text>
+            {recentTransactions.length === 0 ? (
+              <View className={styles.emptyCard}>
+                <Text className={styles.emptyText}>暂无成交记录</Text>
+              </View>
+            ) : (
+              recentTransactions.map(txn => (
+                <View key={txn.id} className={styles.txnCard}>
+                  <View className={styles.txnRow}>
+                    <Text className={styles.txnId}>{txn.id}</Text>
+                    <Text className={styles.txnAmount}>¥{txn.amount.toFixed(2)}</Text>
+                  </View>
+                  <View className={styles.txnRow}>
+                    <Text className={styles.txnBoxName}>{txn.boxName || '—'}</Text>
+                    <Text className={styles.txnDetail}>
+                      抽成¥{txn.commissionAmount.toFixed(2)} | 实收¥{txn.sellerReceiveAmount.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
 
           <View className={styles.historySection}>

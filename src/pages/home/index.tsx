@@ -8,9 +8,7 @@ import Empty from '@/components/Empty';
 import { useBoxStore } from '@/store/useBoxStore';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { useCommissionStore } from '@/store/useCommissionStore';
-import { mockBoxes, mockMatchRecords } from '@/data/boxData';
-import { mockTransactions } from '@/data/transactionData';
-import { mockSellerStats } from '@/data/commissionData';
+import { useAppInitStore } from '@/store/useAppInitStore';
 import styles from './index.module.scss';
 
 const HomePage: React.FC = () => {
@@ -18,8 +16,6 @@ const HomePage: React.FC = () => {
 
   const {
     boxes,
-    setBoxes,
-    setMatchRecords,
     tryMatchBox,
     completeMatch,
     releaseBoxLock,
@@ -29,15 +25,11 @@ const HomePage: React.FC = () => {
     cleanupExpiredLocks
   } = useBoxStore();
 
-  const { createTransactionFromMatch, setTransactions } = useTransactionStore();
-  const { setSellerStats, updateSellerStatsAfterTransaction, getSellerStats } = useCommissionStore();
+  const { createTransactionFromMatch, transactions } = useTransactionStore();
+  const { updateSellerStatsAfterTransaction, getSellerStats } = useCommissionStore();
 
   useEffect(() => {
-    console.log('[HomePage] 初始化Mock数据');
-    setBoxes(mockBoxes);
-    setMatchRecords(mockMatchRecords);
-    setTransactions(mockTransactions);
-    setSellerStats(mockSellerStats);
+    useAppInitStore.getState().ensureInitialized();
 
     const timer = setInterval(() => {
       const expired = cleanupExpiredLocks();
@@ -47,7 +39,7 @@ const HomePage: React.FC = () => {
     }, 10000);
 
     return () => clearInterval(timer);
-  }, [setBoxes, setMatchRecords, setTransactions, setSellerStats, cleanupExpiredLocks]);
+  }, [cleanupExpiredLocks]);
 
   useDidShow(() => {
     console.log('[HomePage] 页面显示，清理超时锁定');
@@ -92,10 +84,10 @@ const HomePage: React.FC = () => {
             });
 
             console.log('[HomePage] 交易完成', { transactionId: transaction.id });
-            Taro.showToast({
+            Taro.showModal({
               title: '购买成功！',
-              icon: 'success',
-              duration: 2000
+              content: `流水编号：${transaction.id}\n卖家实收：¥${transaction.sellerReceiveAmount.toFixed(2)}\n平台抽成：¥${transaction.commissionAmount.toFixed(2)}`,
+              showCancel: false
             });
           } else {
             console.log('[HomePage] 用户取消支付');
@@ -145,7 +137,11 @@ const HomePage: React.FC = () => {
       sellerReceiveAmount: transaction.sellerReceiveAmount
     });
 
-    Taro.showToast({ title: '购买成功！', icon: 'success', duration: 2000 });
+    Taro.showModal({
+      title: '购买成功！',
+      content: `流水编号：${transaction.id}\n卖家实收：¥${transaction.sellerReceiveAmount.toFixed(2)}\n平台抽成：¥${transaction.commissionAmount.toFixed(2)}`,
+      showCancel: false
+    });
   }, [matchRecords, createTransactionFromMatch, completeMatch, updateSellerStatsAfterTransaction]);
 
   const filterBoxes = useCallback((boxes: BlindBox[]): BlindBox[] => {
@@ -171,6 +167,12 @@ const HomePage: React.FC = () => {
     { key: 'locked', label: '锁定中' },
     { key: 'sold', label: '已售出' }
   ];
+
+  const getTransactionInfo = useCallback((boxId: string) => {
+    const txn = transactions.find(t => t.boxId === boxId && t.status === 'completed');
+    if (!txn) return undefined;
+    return { transactionId: txn.id, sellerReceive: txn.sellerReceiveAmount };
+  }, [transactions]);
 
   return (
     <View className={styles.page}>
@@ -216,6 +218,7 @@ const HomePage: React.FC = () => {
                     onMatch={handleMatch}
                     onViewDetail={handleViewDetail}
                     onCompleteTransaction={handleCompleteTransaction}
+                    transactionInfo={getTransactionInfo(box.id)}
                   />
                 </View>
               ))}

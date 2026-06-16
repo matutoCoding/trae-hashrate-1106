@@ -7,8 +7,7 @@ import Empty from '@/components/Empty';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { useCommissionStore } from '@/store/useCommissionStore';
 import { useBoxStore } from '@/store/useBoxStore';
-import { mockTransactions, mockSplitDetails } from '@/data/transactionData';
-import { mockSellerStats } from '@/data/commissionData';
+import { useAppInitStore } from '@/store/useAppInitStore';
 import styles from './index.module.scss';
 
 const sellerNames = [
@@ -39,33 +38,26 @@ const TransactionPage: React.FC = () => {
 
   const {
     transactions,
-    setTransactions,
-    setSplitDetails,
     filterTransactions,
     getTransactionSummary,
     createManualTransactionFromForm
   } = useTransactionStore();
 
-  const { setSellerStats, getSellerStats, getCurrentRate, updateSellerStatsAfterTransaction } = useCommissionStore();
+  const { getSellerStats, getCurrentRate, updateSellerStatsAfterTransaction } = useCommissionStore();
   const { getAvailableBoxes } = useBoxStore();
 
   useEffect(() => {
-    console.log('[TransactionPage] 初始化流水数据');
-    setTransactions(mockTransactions);
-    setSplitDetails(mockSplitDetails);
-    setSellerStats(mockSellerStats);
-  }, [setTransactions, setSplitDetails, setSellerStats]);
+    useAppInitStore.getState().ensureInitialized();
+  }, []);
 
   usePullDownRefresh(() => {
-    console.log('[TransactionPage] 下拉刷新');
     setTimeout(() => {
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
     }, 1000);
   });
 
-  const handleViewDetail = useCallback((transactionId: string) => {
-    console.log('[TransactionPage] 查看流水详情', { transactionId });
+  const handleViewDetail = useCallback((_transactionId: string) => {
     Taro.navigateTo({ url: '/pages/transaction-detail/index' });
   }, []);
 
@@ -127,12 +119,17 @@ const TransactionPage: React.FC = () => {
   }, []);
 
   const handleSubmit = useCallback(() => {
+    if (!box) {
+      Taro.showToast({ title: '请选择盲盒', icon: 'none' });
+      return;
+    }
+
     if (!amount || amount <= 0) {
       Taro.showToast({ title: '请输入有效金额', icon: 'none' });
       return;
     }
 
-    const result = createManualTransactionFromForm({
+    createManualTransactionFromForm({
       sellerId: seller.id,
       sellerName: seller.name,
       buyerId: buyer.id,
@@ -211,7 +208,7 @@ const TransactionPage: React.FC = () => {
             </View>
 
             <View className={styles.formItem}>
-              <Text className={styles.formLabel}>选择盲盒</Text>
+              <Text className={styles.formLabel}>选择盲盒<Text className={styles.required}>（必选）</Text></Text>
               <Picker
                 mode='selector'
                 range={availableBoxes.length > 0 ? availableBoxes.map(b => b.name) : ['暂无可用盲盒']}

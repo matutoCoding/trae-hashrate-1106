@@ -118,6 +118,7 @@ export interface Reconciliation {
   status: ReconciliationStatus;
   createdAt: string;
   confirmedAt?: string;
+  confirmedBy?: string;
   remark?: string;
 }
 
@@ -130,6 +131,7 @@ export interface ReconciliationItem {
   systemAmount: number;
   difference: number;
   status: 'matched' | 'mismatch';
+  editable?: boolean;
   remark?: string;
 }
 

@@ -105,6 +105,18 @@
     }
   }
 
+  .transactionInfo {
+    background: $color-bg-hover;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-xs;
+    margin-top: $spacing-sm;
+
+    .transactionText {
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
+    }
+  }
+
   .actionRow {
     .matchBtn {
       @include button-reset;
@@ -153,6 +165,18 @@
         font-weight: $font-weight-medium;
         color: $color-text-white;
       }
+    }
+  }
+
+  .transactionInfo {
+    background: $color-bg-hover;
+    border-radius: $radius-xs;
+    padding: $spacing-xs $spacing-sm;
+    margin-top: $spacing-sm;
+
+    .transactionText {
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
     }
   }
 }
