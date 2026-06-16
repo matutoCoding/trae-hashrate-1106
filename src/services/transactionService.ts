@@ -7,6 +7,17 @@ interface CreateTransactionParams {
   sellerTotalSales: number;
 }
 
+export interface CreateManualTransactionParams {
+  sellerId: string;
+  sellerName: string;
+  buyerId: string;
+  buyerName: string;
+  boxId?: string;
+  boxName?: string;
+  amount: number;
+  sellerTotalSales: number;
+}
+
 export const transactionService = {
   createTransaction(params: CreateTransactionParams): {
     transaction: Transaction;
@@ -69,6 +80,59 @@ export const transactionService = {
       sellerReceive: transaction.sellerReceiveAmount,
       platformReceive: transaction.platformReceiveAmount
     });
+
+    return { transaction, splitDetails };
+  },
+
+  createManualTransaction(params: CreateManualTransactionParams): {
+    transaction: Transaction;
+    splitDetails: SplitAccountDetail[];
+  } {
+    const { sellerId, sellerName, buyerId, buyerName, boxId, boxName, amount, sellerTotalSales } = params;
+
+    const commissionResult = commissionService.calculateCommission(amount, sellerTotalSales);
+
+    const now = dayjs();
+    const transaction: Transaction = {
+      id: `TXN_${now.valueOf()}`,
+      type: 'sale',
+      amount,
+      boxId,
+      boxName,
+      sellerId,
+      sellerName,
+      buyerId,
+      buyerName,
+      commissionRate: commissionResult.commissionRate,
+      commissionAmount: commissionResult.commissionAmount,
+      sellerReceiveAmount: commissionResult.sellerReceive,
+      platformReceiveAmount: commissionResult.platformReceive,
+      status: 'completed',
+      createdAt: now.toISOString(),
+      completedAt: now.toISOString(),
+      remark: boxName ? `盲盒【${boxName}】手动登记成交` : '手动登记成交'
+    };
+
+    const splitDetails: SplitAccountDetail[] = [
+      {
+        id: `SPLIT_SELLER_${now.valueOf()}`,
+        transactionId: transaction.id,
+        subject: '卖家货款',
+        amount: commissionResult.sellerReceive,
+        rate: 1 - commissionResult.commissionRate,
+        type: 'seller',
+        createdAt: now.toISOString()
+      },
+      {
+        id: `SPLIT_PLATFORM_${now.valueOf()}`,
+        transactionId: transaction.id,
+        subject: '平台服务费',
+        amount: commissionResult.commissionAmount,
+        rate: commissionResult.commissionRate,
+        type: 'platform',
+        createdAt: now.toISOString()
+      }
+    ];
 
     return { transaction, splitDetails };
   },

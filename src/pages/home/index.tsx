@@ -22,13 +22,15 @@ const HomePage: React.FC = () => {
     setMatchRecords,
     tryMatchBox,
     completeMatch,
+    releaseBoxLock,
+    matchRecords,
     getAvailableBoxes,
     getLockedBoxes,
     cleanupExpiredLocks
   } = useBoxStore();
 
   const { createTransactionFromMatch, setTransactions } = useTransactionStore();
-  const { setSellerStats } = useCommissionStore();
+  const { setSellerStats, updateSellerStatsAfterTransaction, getSellerStats } = useCommissionStore();
 
   useEffect(() => {
     console.log('[HomePage] 初始化Mock数据');
@@ -76,13 +78,18 @@ const HomePage: React.FC = () => {
           if (res.confirm) {
             console.log('[HomePage] 用户确认支付', { matchId: result.record!.id });
 
-            const sellerStats = mockSellerStats.find(
-              s => s.sellerId === result.record!.sellerId && s.month === '2026-06'
-            );
-            const totalSales = sellerStats?.totalSales || 0;
+            const sellerStat = getSellerStats(result.record!.sellerId);
+            const totalSales = sellerStat?.totalSales || 0;
 
             const { transaction } = createTransactionFromMatch(result.record!, totalSales);
             completeMatch(result.record!.id);
+            updateSellerStatsAfterTransaction({
+              sellerId: result.record!.sellerId,
+              sellerName: result.record!.sellerName,
+              amount: result.record!.price,
+              commissionAmount: transaction.commissionAmount,
+              sellerReceiveAmount: transaction.sellerReceiveAmount
+            });
 
             console.log('[HomePage] 交易完成', { transactionId: transaction.id });
             Taro.showToast({
@@ -92,6 +99,12 @@ const HomePage: React.FC = () => {
             });
           } else {
             console.log('[HomePage] 用户取消支付');
+            releaseBoxLock(boxId);
+            Taro.showToast({
+              title: '已取消，锁定已释放',
+              icon: 'none',
+              duration: 2000
+            });
           }
         }
       });
@@ -102,12 +115,38 @@ const HomePage: React.FC = () => {
         duration: 2000
       });
     }
-  }, [tryMatchBox, createTransactionFromMatch, completeMatch]);
+  }, [tryMatchBox, createTransactionFromMatch, completeMatch, updateSellerStatsAfterTransaction, releaseBoxLock]);
 
   const handleViewDetail = useCallback((boxId: string) => {
     console.log('[HomePage] 查看盲盒详情', { boxId });
     Taro.navigateTo({ url: '/pages/box-detail/index' });
   }, []);
+
+  const handleCompleteTransaction = useCallback((boxId: string) => {
+    const activeRecord = matchRecords.find(
+      r => r.boxId === boxId && r.status === 'matched'
+    );
+
+    if (!activeRecord) {
+      Taro.showToast({ title: '未找到活跃的撮合记录', icon: 'none' });
+      return;
+    }
+
+    const sellerStat = getSellerStats(activeRecord.sellerId);
+    const totalSales = sellerStat?.totalSales || 0;
+
+    const { transaction } = createTransactionFromMatch(activeRecord, totalSales);
+    completeMatch(activeRecord.id);
+    updateSellerStatsAfterTransaction({
+      sellerId: activeRecord.sellerId,
+      sellerName: activeRecord.sellerName,
+      amount: activeRecord.price,
+      commissionAmount: transaction.commissionAmount,
+      sellerReceiveAmount: transaction.sellerReceiveAmount
+    });
+
+    Taro.showToast({ title: '购买成功！', icon: 'success', duration: 2000 });
+  }, [matchRecords, createTransactionFromMatch, completeMatch, updateSellerStatsAfterTransaction]);
 
   const filterBoxes = useCallback((boxes: BlindBox[]): BlindBox[] => {
     switch (filterType) {
@@ -176,6 +215,7 @@ const HomePage: React.FC = () => {
                     box={box}
                     onMatch={handleMatch}
                     onViewDetail={handleViewDetail}
+                    onCompleteTransaction={handleCompleteTransaction}
                   />
                 </View>
               ))}

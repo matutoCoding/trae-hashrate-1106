@@ -1,28 +1,53 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, Picker, Input } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
 import TransactionCard from '@/components/TransactionCard';
 import Empty from '@/components/Empty';
 import { useTransactionStore } from '@/store/useTransactionStore';
 import { useCommissionStore } from '@/store/useCommissionStore';
+import { useBoxStore } from '@/store/useBoxStore';
 import { mockTransactions, mockSplitDetails } from '@/data/transactionData';
 import { mockSellerStats } from '@/data/commissionData';
 import styles from './index.module.scss';
 
+const sellerNames = [
+  { id: 'SELLER_001', name: '张明' },
+  { id: 'SELLER_002', name: '李华' },
+  { id: 'SELLER_003', name: '王芳' },
+  { id: 'SELLER_004', name: '刘伟' },
+  { id: 'SELLER_005', name: '陈静' }
+];
+
+const buyerNames = [
+  { id: 'BUYER_001', name: '赵强' },
+  { id: 'BUYER_002', name: '孙丽' },
+  { id: 'BUYER_003', name: '周杰' },
+  { id: 'BUYER_004', name: '吴敏' },
+  { id: 'BUYER_005', name: '郑涛' }
+];
+
 const TransactionPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const [showForm, setShowForm] = useState(false);
+  const [selectedSellerIndex, setSelectedSellerIndex] = useState(0);
+  const [selectedBuyerIndex, setSelectedBuyerIndex] = useState(0);
+  const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
+  const [amountInput, setAmountInput] = useState('');
 
   const {
     transactions,
     setTransactions,
     setSplitDetails,
     filterTransactions,
-    getTransactionSummary
+    getTransactionSummary,
+    createManualTransactionFromForm
   } = useTransactionStore();
 
-  const { setSellerStats } = useCommissionStore();
+  const { setSellerStats, getSellerStats, getCurrentRate, updateSellerStatsAfterTransaction } = useCommissionStore();
+  const { getAvailableBoxes } = useBoxStore();
 
   useEffect(() => {
     console.log('[TransactionPage] 初始化流水数据');
@@ -71,6 +96,70 @@ const TransactionPage: React.FC = () => {
   const totalExpense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
   const netIncome = totalIncome - totalExpense;
 
+  const availableBoxes = useMemo(() => getAvailableBoxes(), [getAvailableBoxes, transactions]);
+
+  const seller = sellerNames[selectedSellerIndex];
+  const buyer = buyerNames[selectedBuyerIndex];
+  const box = availableBoxes.length > 0 ? availableBoxes[selectedBoxIndex] : null;
+
+  const sellerStats = getSellerStats(seller.id);
+  const sellerTotalSales = sellerStats?.totalSales || 0;
+  const currentRate = getCurrentRate(sellerTotalSales);
+
+  const amount = parseFloat(amountInput) || 0;
+  const platformCommission = amount * currentRate;
+  const sellerReceive = amount - platformCommission;
+
+  const handleSellerChange = useCallback((e) => {
+    setSelectedSellerIndex(e.detail.value);
+  }, []);
+
+  const handleBuyerChange = useCallback((e) => {
+    setSelectedBuyerIndex(e.detail.value);
+  }, []);
+
+  const handleBoxChange = useCallback((e) => {
+    setSelectedBoxIndex(e.detail.value);
+  }, []);
+
+  const handleAmountInput = useCallback((e) => {
+    setAmountInput(e.detail.value);
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (!amount || amount <= 0) {
+      Taro.showToast({ title: '请输入有效金额', icon: 'none' });
+      return;
+    }
+
+    const result = createManualTransactionFromForm({
+      sellerId: seller.id,
+      sellerName: seller.name,
+      buyerId: buyer.id,
+      buyerName: buyer.name,
+      boxId: box?.id,
+      boxName: box?.name,
+      amount,
+      sellerTotalSales
+    });
+
+    updateSellerStatsAfterTransaction({
+      sellerId: seller.id,
+      sellerName: seller.name,
+      amount,
+      commissionAmount: platformCommission,
+      sellerReceiveAmount: sellerReceive
+    });
+
+    Taro.showToast({ title: '新增成功', icon: 'success' });
+
+    setShowForm(false);
+    setAmountInput('');
+    setSelectedSellerIndex(0);
+    setSelectedBuyerIndex(0);
+    setSelectedBoxIndex(0);
+  }, [amount, seller, buyer, box, sellerTotalSales, platformCommission, sellerReceive, createManualTransactionFromForm, updateSellerStatsAfterTransaction]);
+
   return (
     <View className={styles.page}>
       <View className={styles.statsSection}>
@@ -92,6 +181,90 @@ const TransactionPage: React.FC = () => {
       </View>
 
       <View className={styles.content}>
+        <View
+          className={classnames(styles.addBtn, { [styles.addBtnActive]: showForm })}
+          onClick={() => setShowForm(!showForm)}
+        >
+          <Text className={styles.addBtnText}>{showForm ? '收起表单' : '＋ 新增流水'}</Text>
+        </View>
+
+        {showForm && (
+          <View className={styles.formSection}>
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>选择卖家</Text>
+              <Picker mode='selector' range={sellerNames.map(s => s.name)} value={selectedSellerIndex} onChange={handleSellerChange}>
+                <View className={styles.pickerValue}>
+                  <Text className={styles.pickerText}>{seller.name}</Text>
+                  <Text className={styles.pickerArrow}>▼</Text>
+                </View>
+              </Picker>
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>选择买家</Text>
+              <Picker mode='selector' range={buyerNames.map(b => b.name)} value={selectedBuyerIndex} onChange={handleBuyerChange}>
+                <View className={styles.pickerValue}>
+                  <Text className={styles.pickerText}>{buyer.name}</Text>
+                  <Text className={styles.pickerArrow}>▼</Text>
+                </View>
+              </Picker>
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>选择盲盒</Text>
+              <Picker
+                mode='selector'
+                range={availableBoxes.length > 0 ? availableBoxes.map(b => b.name) : ['暂无可用盲盒']}
+                value={selectedBoxIndex}
+                onChange={availableBoxes.length > 0 ? handleBoxChange : undefined}
+              >
+                <View className={styles.pickerValue}>
+                  <Text className={styles.pickerText}>
+                    {availableBoxes.length > 0 ? availableBoxes[selectedBoxIndex]?.name || '请选择' : '暂无可用盲盒'}
+                  </Text>
+                  <Text className={styles.pickerArrow}>▼</Text>
+                </View>
+              </Picker>
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>成交金额</Text>
+              <Input
+                className={styles.amountInput}
+                type='digit'
+                placeholder='请输入成交金额'
+                value={amountInput}
+                onInput={handleAmountInput}
+              />
+            </View>
+
+            {seller.id && (
+              <View className={styles.calcResult}>
+                <View className={styles.calcRow}>
+                  <Text className={styles.calcLabel}>当月累计成交额</Text>
+                  <Text className={styles.calcValue}>¥{sellerTotalSales.toFixed(2)}</Text>
+                </View>
+                <View className={styles.calcRow}>
+                  <Text className={styles.calcLabel}>当前抽成比例</Text>
+                  <Text className={styles.calcValue}>{(currentRate * 100).toFixed(1)}%</Text>
+                </View>
+                <View className={styles.calcRow}>
+                  <Text className={styles.calcLabel}>平台抽成</Text>
+                  <Text className={classnames(styles.calcValue, styles.expense)}>¥{platformCommission.toFixed(2)}</Text>
+                </View>
+                <View className={styles.calcRow}>
+                  <Text className={styles.calcLabel}>卖家实收</Text>
+                  <Text className={classnames(styles.calcValue, styles.income)}>¥{sellerReceive.toFixed(2)}</Text>
+                </View>
+              </View>
+            )}
+
+            <View className={styles.submitBtn} onClick={handleSubmit}>
+              <Text className={styles.submitBtnText}>确认提交</Text>
+            </View>
+          </View>
+        )}
+
         <View className={styles.filterSection}>
           <Text className={styles.filterLabel}>交易类型</Text>
           <ScrollView

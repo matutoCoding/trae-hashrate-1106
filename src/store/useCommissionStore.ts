@@ -32,6 +32,13 @@ interface CommissionActions {
     nextAmount: number
   ) => ReturnType<typeof commissionService.estimateSavings>;
   formatRate: (rate: number) => string;
+  updateSellerStatsAfterTransaction: (params: {
+    sellerId: string;
+    sellerName: string;
+    amount: number;
+    commissionAmount: number;
+    sellerReceiveAmount: number;
+  }) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 }
@@ -78,6 +85,46 @@ export const useCommissionStore = create<CommissionState & CommissionActions>((s
     commissionService.estimateSavings(totalSales, nextAmount),
 
   formatRate: (rate) => commissionService.formatRate(rate),
+
+  updateSellerStatsAfterTransaction: (params) => {
+    const { sellerId, sellerName, amount, commissionAmount, sellerReceiveAmount } = params;
+    const currentMonth = dayjs().format('YYYY-MM');
+    const state = get();
+    const existingIndex = state.sellerStats.findIndex(
+      (s) => s.sellerId === sellerId && s.month === currentMonth
+    );
+
+    if (existingIndex !== -1) {
+      const existing = state.sellerStats[existingIndex];
+      const updatedStats = [...state.sellerStats];
+      const totalSales = existing.totalSales + amount;
+      const { tier } = commissionService.calculateCurrentTier(totalSales);
+      updatedStats[existingIndex] = {
+        ...existing,
+        totalSales,
+        totalOrders: existing.totalOrders + 1,
+        totalCommission: existing.totalCommission + commissionAmount,
+        totalReceive: existing.totalReceive + sellerReceiveAmount,
+        currentTier: tier.tier,
+        currentRate: tier.rate
+      };
+      set({ sellerStats: updatedStats });
+    } else {
+      const { tier } = commissionService.calculateCurrentTier(amount);
+      const newRecord: SellerSalesStats = {
+        sellerId,
+        sellerName,
+        month: currentMonth,
+        totalSales: amount,
+        totalOrders: 1,
+        totalCommission: commissionAmount,
+        totalReceive: sellerReceiveAmount,
+        currentTier: tier.tier,
+        currentRate: tier.rate
+      };
+      set({ sellerStats: [...state.sellerStats, newRecord] });
+    }
+  },
 
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error })

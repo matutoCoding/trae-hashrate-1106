@@ -133,5 +133,26 @@
         color: $color-text-white;
       }
     }
+
+    .completeBtn {
+      @include button-reset;
+      width: 100%;
+      height: $button-height-md;
+      background: $color-success;
+      border-radius: $radius-button;
+      margin-top: $spacing-sm;
+      transition: all $transition-base;
+
+      &:active {
+        opacity: 0.9;
+        transform: scale(0.98);
+      }
+
+      .btnText {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $color-text-white;
+      }
+    }
   }
 }

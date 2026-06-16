@@ -172,3 +172,201 @@
     color: $color-text-tertiary;
   }
 }
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.detailPanel {
+  position: relative;
+  background: $color-bg-card;
+  border-radius: $radius-xl $radius-xl 0 0;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: $shadow-popup;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg $spacing-lg $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+  flex-shrink: 0;
+
+  .detailTitle {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+
+  .closeBtn {
+    width: 56rpx;
+    height: 56rpx;
+    @include flex-center;
+    border-radius: $radius-round;
+    background: $color-bg-hover;
+
+    .closeIcon {
+      font-size: $font-size-md;
+      color: $color-text-secondary;
+    }
+  }
+}
+
+.detailBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-lg;
+}
+
+.detailInfoCard {
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .detailInfoRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-sm;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .detailInfoLabel {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+
+    .detailInfoValue {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+
+      &.pending {
+        color: $color-warning;
+      }
+
+      &.matched {
+        color: $color-success;
+      }
+
+      &.mismatch {
+        color: $color-error;
+      }
+
+      &.confirmed {
+        color: $color-primary;
+      }
+    }
+  }
+}
+
+.confirmedInfo {
+  background: #ECFDF5;
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .confirmedText {
+    font-size: $font-size-sm;
+    color: $color-success;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.detailListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+
+  .detailListTitle {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+  }
+
+  .detailListCount {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+}
+
+.detailItem {
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+
+  &.mismatchItem {
+    background: #FEF2F2;
+  }
+
+  .detailItemRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xs;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .detailItemLabel {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+
+    .detailItemValue {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+    }
+
+    .diffText {
+      color: $color-error;
+    }
+  }
+}
+
+.detailEmpty {
+  @include flex-center;
+  padding: $spacing-xxl 0;
+
+  .detailEmptyText {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+}

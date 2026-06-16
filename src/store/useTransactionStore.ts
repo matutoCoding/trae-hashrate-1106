@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Transaction, SplitAccountDetail, MatchRecord } from '@/types';
-import { transactionService } from '@/services/transactionService';
+import { transactionService, CreateManualTransactionParams } from '@/services/transactionService';
 
 interface TransactionState {
   transactions: Transaction[];
@@ -12,8 +12,12 @@ interface TransactionState {
 interface TransactionActions {
   setTransactions: (transactions: Transaction[]) => void;
   setSplitDetails: (details: SplitAccountDetail[]) => void;
-  addTransaction: (transaction: Transaction) => void;
+  addTransaction: (transaction: Transaction, splitDetails?: SplitAccountDetail[]) => void;
   createTransactionFromMatch: (matchRecord: MatchRecord, sellerTotalSales: number) => {
+    transaction: Transaction;
+    splitDetails: SplitAccountDetail[];
+  };
+  createManualTransactionFromForm: (params: CreateManualTransactionParams) => {
     transaction: Transaction;
     splitDetails: SplitAccountDetail[];
   };
@@ -52,11 +56,25 @@ export const useTransactionStore = create<TransactionState & TransactionActions>
   setTransactions: (transactions) => set({ transactions }),
   setSplitDetails: (splitDetails) => set({ splitDetails }),
 
-  addTransaction: (transaction) =>
-    set((state) => ({ transactions: [transaction, ...state.transactions] })),
+  addTransaction: (transaction, splitDetails) =>
+    set((state) => ({
+      transactions: [transaction, ...state.transactions],
+      ...(splitDetails ? { splitDetails: [...state.splitDetails, ...splitDetails] } : {})
+    })),
 
   createTransactionFromMatch: (matchRecord, sellerTotalSales) => {
     const result = transactionService.createTransaction({ matchRecord, sellerTotalSales });
+
+    set((state) => ({
+      transactions: [result.transaction, ...state.transactions],
+      splitDetails: [...state.splitDetails, ...result.splitDetails]
+    }));
+
+    return result;
+  },
+
+  createManualTransactionFromForm: (params) => {
+    const result = transactionService.createManualTransaction(params);
 
     set((state) => ({
       transactions: [result.transaction, ...state.transactions],

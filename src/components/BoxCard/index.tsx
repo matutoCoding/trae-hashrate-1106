@@ -11,9 +11,10 @@ interface BoxCardProps {
   box: BlindBox;
   onMatch?: (boxId: string) => void;
   onViewDetail?: (boxId: string) => void;
+  onCompleteTransaction?: (boxId: string) => void;
 }
 
-const BoxCard: React.FC<BoxCardProps> = ({ box, onMatch, onViewDetail }) => {
+const BoxCard: React.FC<BoxCardProps> = ({ box, onMatch, onViewDetail, onCompleteTransaction }) => {
   const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
@@ -109,6 +110,17 @@ const BoxCard: React.FC<BoxCardProps> = ({ box, onMatch, onViewDetail }) => {
               {box.status === 'available' ? '立即购买' : box.status === 'locked' ? '锁定中' : '已售出'}
             </Text>
           </Button>
+          {box.status === 'locked' && onCompleteTransaction && (
+            <Button
+              className={styles.completeBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCompleteTransaction(box.id);
+              }}
+            >
+              <Text className={styles.btnText}>完成交易</Text>
+            </Button>
+          )}
         </View>
       </View>
     </View>
